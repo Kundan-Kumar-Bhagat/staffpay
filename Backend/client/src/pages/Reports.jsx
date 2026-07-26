@@ -16,6 +16,7 @@ export default function Reports() {
   const [digest, setDigest] = useState(null);
   const [digestOpen, setDigestOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const cur = company?.currency || 'INR';
 
   useEffect(() => {
     setSummary(null);
