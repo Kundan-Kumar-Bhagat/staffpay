@@ -1,8 +1,9 @@
 {
+  "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://staffpay-api.onrender.com/api/:1"
+      "source": "/api/:path*",
+      "destination": "https://staffpay-api.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
