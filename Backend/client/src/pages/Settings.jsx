@@ -3,7 +3,7 @@ import api from '../api/client';
 import { useCompany } from '../context/CompanyContext';
 import { PageHead, Btn, Field, useToast, Reveal, Toggle, Modal } from '../components/ui';
 import PayslipDoc from '../components/PayslipDoc';
-import { monthLabel, currentMonth } from '../utils/format';
+import { monthLabel, currentMonth, downloadUrl, dstr } from '../utils/format';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -27,6 +27,7 @@ export default function Settings() {
   const [sample, setSample] = useState(null);
   const [integrations, setIntegrations] = useState(null);
   const [waTesting, setWaTesting] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
 
   useEffect(() => {
     api.get('/company/integrations').then(r => setIntegrations(r.data)).catch(() => {});
@@ -37,6 +38,15 @@ export default function Settings() {
     try { const { data } = await api.post('/company/integrations/test-whatsapp'); toast(data.message, data.ok ? 'ok' : 'err'); }
     catch (e) { toast(e.response?.data?.message || 'Test failed', 'err'); }
     setWaTesting(false);
+  };
+
+  const backup = async () => {
+    setBackingUp(true);
+    try {
+      await downloadUrl('/reports/backup', `staffpay-backup-${dstr().replaceAll('-', '')}.json`);
+      toast('Backup downloaded — store it somewhere safe');
+    } catch { toast('Backup failed', 'err'); }
+    setBackingUp(false);
   };
 
   useEffect(() => {
@@ -178,6 +188,15 @@ export default function Settings() {
             <Field label="Bank name"><input className="input" value={form.bank?.name || ''} onChange={e => setForm(f => ({ ...f, bank: { ...f.bank, name: e.target.value } }))} /></Field>
             <Field label="Account no."><input className="input" value={form.bank?.accountNo || ''} onChange={e => setForm(f => ({ ...f, bank: { ...f.bank, accountNo: e.target.value } }))} /></Field>
             <Field label="IFSC / SWIFT"><input className="input" value={form.bank?.ifsc || ''} onChange={e => setForm(f => ({ ...f, bank: { ...f.bank, ifsc: e.target.value } }))} /></Field>
+          </div>
+
+          <h4 className="sect">Data & backup</h4>
+          <div className="backup-row">
+            <div className="integ-meta">
+              <b>Full workspace export</b>
+              <span>Users, attendance, payslips, invoices & leave — one JSON snapshot, passwords excluded</span>
+            </div>
+            <Btn type="button" variant="ghost" onClick={backup} disabled={backingUp}>{backingUp ? 'Preparing…' : 'Download backup'}</Btn>
           </div>
 
           <div className="row-end">

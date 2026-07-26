@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useCompany } from '../context/CompanyContext';
-import { PageHead, Stat, Btn, Reveal, Spinner, Icon, useToast } from '../components/ui';
+import { PageHead, Stat, Btn, Reveal, Spinner, Icon, useToast, Modal } from '../components/ui';
 import { StatusDonut, DailyBars, PayrollLine } from '../components/charts';
 import { currentMonth, monthLabel, shiftMonth, money, downloadUrl } from '../utils/format';
 
@@ -13,7 +13,9 @@ export default function Reports() {
   const [daily, setDaily] = useState([]);
   const [trend, setTrend] = useState([]);
   const [staffRows, setStaffRows] = useState([]);
-  const cur = company?.currency || 'INR';
+  const [digest, setDigest] = useState(null);
+  const [digestOpen, setDigestOpen] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     setSummary(null);
@@ -22,6 +24,17 @@ export default function Reports() {
     api.get('/reports/trend?months=6').then(r => setTrend(r.data));
     api.get(`/reports/staff?month=${month}`).then(r => setStaffRows(r.data));
   }, [month]);
+
+  useEffect(() => { api.get('/reports/digest-preview').then(r => setDigest(r.data)).catch(() => {}); }, []);
+
+  const sendNow = async () => {
+    setSending(true);
+    try {
+      const { data } = await api.post('/reports/digest-send');
+      toast(data.sent ? `Digest emailed to ${data.sent} manager(s)` : 'Nothing sent — configure SMTP and give managers emails', data.sent ? 'ok' : 'err');
+    } catch { toast('Send failed', 'err'); }
+    setSending(false);
+  };
 
   const donut = summary ? Object.entries(summary.counts).map(([k, v]) => ({
     name: k[0].toUpperCase() + k.slice(1), value: v,
@@ -79,6 +92,25 @@ export default function Reports() {
               </div>
             </div>
           </Reveal>
+          <Reveal delay={120}>
+            <div className="card digest-card">
+              <div>
+                <h3 className="card-title">Monday manager digest</h3>
+                <p className="digest-sub">
+                  {digest
+                    ? <>{digest.stats.out} out today · {digest.stats.unmarked} unmarked · {digest.stats.pending} approvals waiting · month at {digest.stats.rate}%</>
+                    : 'Loading live figures…'}
+                </p>
+              </div>
+              <div className="row-actions">
+                <Btn variant="ghost" onClick={() => setDigestOpen(true)} disabled={!digest}>Preview email</Btn>
+                <Btn onClick={sendNow} disabled={sending}>{sending ? 'Sending…' : 'Send now'}</Btn>
+              </div>
+            </div>
+          </Reveal>
+          <Modal open={digestOpen} onClose={() => setDigestOpen(false)} title="Digest preview — exactly what managers receive" wide>
+            {digest && <div className="digest-frame" dangerouslySetInnerHTML={{ __html: digest.html }} />}
+          </Modal>
         </>
       )}
     </>

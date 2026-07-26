@@ -5,6 +5,7 @@ import { useCompany } from '../context/CompanyContext';
 import { Icon, RoleBadge } from './ui';
 import { initials } from '../utils/format';
 import NotificationsBell from './Notifications';
+import OfflineBanner from './OfflineBanner';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: 'grid', roles: ['admin', 'manager', 'staff'] },
@@ -73,6 +74,7 @@ export default function Layout() {
           </button>
           <button className="icon-btn" title="Sign out" onClick={() => { logout(); nav('/login'); }}><Icon name="out" /></button>
         </header>
+        <OfflineBanner />
         <main className="page"><Outlet /></main>
       </div>
     </div>

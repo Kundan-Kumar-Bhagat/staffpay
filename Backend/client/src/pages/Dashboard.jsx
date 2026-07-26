@@ -7,6 +7,7 @@ import { PageHead, Stat, Reveal, StatusPill, Btn, Icon, Spinner, useToast } from
 import { StatusDonut, DailyBars, PayrollLine } from '../components/charts';
 import { currentMonth, money, prettyDate } from '../utils/format'; 
 import ActivityFeed from '../components/ActivityFeed';
+import { queueAction } from '../utils/offline';
 
 
 function CheckInCard({ rec, onDone }) {
@@ -14,6 +15,11 @@ function CheckInCard({ rec, onDone }) {
   const [busy, setBusy] = useState(false);
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   const act = async endpoint => {
+    if (!navigator.onLine) {
+      queueAction({ type: endpoint });
+      onDone(null, `Offline — ${endpoint === 'checkin' ? 'check-in' : 'check-out'} queued, will sync automatically`, 'ok');
+      return;
+    }
     setBusy(true);
     try { const { data } = await api.post(`/attendance/${endpoint}`); onDone(data.record, data.message); }
     catch (e) { onDone(null, e.response?.data?.message || 'Failed'); }
@@ -85,9 +91,9 @@ export default function Dashboard() {
         <>
           {isStaff ? (
             <>
-              <Reveal><CheckInCard rec={todayRec} onDone={(rec, msg) => {
+              <Reveal><CheckInCard rec={todayRec} onDone={(rec, msg, kind) => {
                 if (rec) { setTodayRec(rec); toast(msg); }
-                else if (msg) toast(msg, 'err');
+                else if (msg) toast(msg, kind || 'err');
               }} /></Reveal>
               <div className="grid-4">
                 <Reveal delay={60}><Stat label="Days present (this month)" value={my.present} /></Reveal>
