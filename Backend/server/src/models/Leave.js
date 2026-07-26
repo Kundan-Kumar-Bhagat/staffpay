@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScope } from './plugins/tenantScope.js';
 
 const leaveSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -11,5 +12,7 @@ const leaveSchema = new mongoose.Schema({
   decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   decidedAt: Date,
 }, { timestamps: true });
+
+leaveSchema.plugin(tenantScope);
 
 export default mongoose.model('Leave', leaveSchema);

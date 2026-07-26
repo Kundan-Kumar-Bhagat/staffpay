@@ -2,8 +2,10 @@ import { Router } from 'express';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 
+import { tenant } from '../middleware/tenant.js';
+
 const r = Router();
-r.use(protect);
+r.use(protect, tenant);
 
 r.get('/', async (req, res) => {
   const rows = await Notification.find({ user: req.user._id })

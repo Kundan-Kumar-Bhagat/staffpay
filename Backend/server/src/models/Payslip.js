@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScope } from './plugins/tenantScope.js';
 
 const payslipSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -15,5 +16,7 @@ const payslipSchema = new mongoose.Schema({
   generatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-payslipSchema.index({ user: 1, month: 1 }, { unique: true });
+payslipSchema.index({ user: 1, month: 1, workspace: 1 }, { unique: true });
+payslipSchema.plugin(tenantScope);
+
 export default mongoose.model('Payslip', payslipSchema);

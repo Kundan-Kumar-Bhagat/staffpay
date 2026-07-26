@@ -1,6 +1,6 @@
 import Payslip from '../models/Payslip.js';
 import User from '../models/User.js';
-import Company from '../models/Company.js';
+import Workspace from '../models/Workspace.js';
 import { computeAndSavePayslip } from '../services/payroll.service.js';
 import { payslipPDF, pdfBuffer } from '../services/pdf.service.js';
 import { payslipXLSX } from '../services/excel.service.js';
@@ -13,7 +13,7 @@ export const generate = async (req, res) => {
   const { userId, month = currentMonth() } = req.body;
   const user = await User.findById(userId);
   if (!user) return res.status(404).json({ message: 'Staff member not found' });
-  const company = await Company.findOne();
+  const company = req.company;
   const slip = await computeAndSavePayslip(user, month, company, req.user._id);
   logActivity(req.user, 'payslip', `generated payslip ${slip.serial} for ${user.name}`);
   notify(user, 'payslip', 'Payslip issued', `Your payslip ${slip.serial} for ${slip.monthName} is ready — net ${fmtMoney(slip.net, company.currency)}.`, '/payslips');
@@ -22,7 +22,7 @@ export const generate = async (req, res) => {
 
 export const generateAll = async (req, res) => {
   const { month = currentMonth() } = req.body;
-  const company = await Company.findOne();
+  const company = req.company;
   const users = await User.find({ status: 'active', role: { $in: ['staff', 'manager'] } });
   const slips = [];
   for (const u of users) {
@@ -52,7 +52,7 @@ export const getOne = async (req, res) => { const p = await loadSlip(req, res); 
 
 export const pdf = async (req, res) => {
   const p = await loadSlip(req, res); if (!p) return;
-  const company = await Company.findOne();
+  const company = req.company;
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${p.serial}.pdf"`);
   payslipPDF(p, company, p.user).pipe(res);
@@ -60,7 +60,7 @@ export const pdf = async (req, res) => {
 
 export const xlsx = async (req, res) => {
   const p = await loadSlip(req, res); if (!p) return;
-  const company = await Company.findOne();
+  const company = req.company;
   const buf = await payslipXLSX(p, company, p.user);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${p.serial}.xlsx"`);
@@ -74,7 +74,7 @@ export const remove = async (req, res) => {
 
 export const emailSlip = async (req, res) => {
   const p = await loadSlip(req, res); if (!p) return;
-  const company = await Company.findOne();
+  const company = req.company;
   const to = req.body.to || p.user.email;
   if (!to) return res.status(400).json({ message: 'No recipient — add an email to the staff record or pass { "to": "…" }' });
   const pdf = await pdfBuffer(payslipPDF(p, company, p.user));
@@ -93,10 +93,12 @@ export const verify = async (req, res) => {
   const p = await Payslip.findOne({ serial: { $regex: `^${safe}$`, $options: 'i' } })
     .populate('user', 'name employeeId designation department');
   if (!p) return res.status(404).json({ valid: false, message: 'No payslip found with this number. Check the slip no. and try again.' });
+  const ws = await Workspace.findById(p.workspace);
   const name = p.user?.name || '';
   res.json({
     valid: true,
     serial: p.serial,
+    company: ws?.name || '—',
     month: p.monthName,
     employee: name ? `${name[0]}${'*'.repeat(Math.min(6, Math.max(3, name.length - 1)))}` : '—',
     employeeId: p.user?.employeeId,

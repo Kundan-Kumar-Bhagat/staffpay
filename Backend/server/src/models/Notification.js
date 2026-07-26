@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScope } from './plugins/tenantScope.js';
 
 const notificationSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -8,5 +9,7 @@ const notificationSchema = new mongoose.Schema({
   link: String,
   read: { type: Boolean, default: false },
 }, { timestamps: true });
+
+notificationSchema.plugin(tenantScope);
 
 export default mongoose.model('Notification', notificationSchema);

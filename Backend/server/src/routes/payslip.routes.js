@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import * as c from '../controllers/payslip.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { tenant } from '../middleware/tenant.js';
 const r = Router();
 r.get('/verify/:serial', c.verify);
-r.use(protect);
+r.use(protect, tenant);
 r.get('/', c.list);
 r.post('/generate', authorize('admin', 'manager'), c.generate);
 r.post('/generate-all', authorize('admin', 'manager'), 

@@ -2,8 +2,10 @@ import { Router } from 'express';
 import * as c from '../controllers/leave.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
 
+import { tenant } from '../middleware/tenant.js';
+
 const r = Router();
-r.use(protect);
+r.use(protect, tenant);
 r.get('/', c.list);
 r.get('/balance', c.balance);
 r.post('/', c.apply);

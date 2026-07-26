@@ -1,9 +1,14 @@
 import User from '../models/User.js';
+import { PLAN_LIMITS } from '../models/Workspace.js';
 import { logActivity } from '../utils/log.js';
 
 export const list = async (req, res) => res.json(await User.find().sort('employeeId'));
 
 export const create = async (req, res) => {
+  const limit = PLAN_LIMITS[req.workspace?.plan]?.staff ?? 10;
+  if ((await User.countDocuments()) >= limit) {
+    return res.status(402).json({ message: `Staff limit for the ${req.workspace?.plan || 'trial'} plan is ${limit}. Upgrade from the Workspaces console.` });
+  }
   const { name, email, phone, role = 'staff', password = 'Change@123', ...rest } = req.body;
   if (!name) return res.status(400).json({ message: 'Name is required' });
   if (email && await User.findOne({ email: email.toLowerCase() })) return res.status(409).json({ message: 'Email already exists' });

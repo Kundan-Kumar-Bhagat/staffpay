@@ -1,23 +1,14 @@
-import Company from '../models/Company.js';
+import { companyView } from '../models/Workspace.js';
 import { waEnabled, sendWhatsApp } from '../services/whatsapp.service.js';
 
-const DEFAULTS = {
-  name: 'Your Company Pvt. Ltd.', tagline: 'Attendance & Payroll', address: '12 Business Park', city: 'Mumbai',
-  state: 'Maharashtra', zip: '400001', country: 'India', phone: '+91 98000 00000', email: 'hr@company.com',
-  taxId: '', pfCode: '', managerName: '', managerTitle: 'Operations Manager', currency: 'INR',
-};
-
-export const get = async (req, res) => {
-  const c = await Company.findOne();
-  res.json(c || DEFAULTS);
-};
+export const get = (req, res) => res.json(companyView(req.workspace));
 
 export const update = async (req, res) => {
-  let c = await Company.findOne();
-  if (!c) c = new Company();
-  Object.assign(c, req.body);
-  await c.save();
-  res.json(c);
+  const { name, ...rest } = req.body;
+  if (name) req.workspace.name = name;
+  Object.assign(req.workspace.settings, rest);
+  await req.workspace.save();
+  res.json(companyView(req.workspace));
 };
 
 export const integrations = (req, res) => res.json({

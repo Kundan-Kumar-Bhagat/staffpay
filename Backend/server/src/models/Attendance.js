@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tenantScope } from './plugins/tenantScope.js';
 
 const attendanceSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -11,5 +12,7 @@ const attendanceSchema = new mongoose.Schema({
   markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-attendanceSchema.index({ user: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ user: 1, date: 1, workspace: 1 }, { unique: true });
+attendanceSchema.plugin(tenantScope);
+
 export default mongoose.model('Attendance', attendanceSchema);

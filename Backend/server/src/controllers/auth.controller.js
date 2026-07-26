@@ -3,28 +3,66 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import Token from '../models/Token.js';
+import Workspace, { genJoinCode, slugify, companyView } from '../models/Workspace.js';
 import { sendMail } from '../services/mail.service.js';
 import { logActivity } from '../utils/log.js';
+
 const gclient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const hash = s => crypto.createHash('sha256').update(s).digest('hex');
 
-const issueTokens = (user, remember) => ({
+export const withWorkspaceInfo = async user => {
+  const ws = await Workspace.findById(user.activeWorkspace || user.workspace);
+  return {
+    ...user.toJSON(),
+    workspaceInfo: ws ? {
+      id: ws._id, name: ws.name, plan: ws.plan,
+      joinCode: (['admin', 'manager'].includes(user.role) || user.superAdmin) ? ws.joinCode : undefined,
+    } : null,
+  };
+};
+
+const issueTokens = async (user, remember) => ({
   access: jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: remember ? '7d' : '1d' }),
   refresh: jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: remember ? '30d' : '1d' }),
-  user: user.toJSON(),
+  user: await withWorkspaceInfo(user),
 });
 
-const nextEmpId = async () => `EMP-${String((await User.countDocuments()) + 1).padStart(3, '0')}`;
+async function soloWorkspace(ownerName) {
+  const name = `${ownerName}'s Workspace`;
+  return Workspace.create({ name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, joinCode: genJoinCode() });
+}
 
 export const register = async (req, res) => {
-  const { name, email, phone, password, remember } = req.body;
+  const { name, email, phone, password, remember, companyName, joinCode } = req.body;
   if (!name || !password || password.length < 6) return res.status(400).json({ message: 'Name and a 6+ character password are required' });
   if (!email && !phone) return res.status(400).json({ message: 'Email or phone is required' });
   if (email && await User.findOne({ email: email.toLowerCase() })) return res.status(409).json({ message: 'Email already registered' });
   if (phone && await User.findOne({ phone })) return res.status(409).json({ message: 'Phone already registered' });
-  const first = (await User.countDocuments()) === 0;
-  const user = await User.create({ name, email, phone, password, role: first ? 'admin' : 'staff', employeeId: await nextEmpId() });
-  res.status(201).json(issueTokens(user, !!remember));
+
+  let workspace, role;
+  if (joinCode) {
+    workspace = await Workspace.findOne({ joinCode: joinCode.toUpperCase().trim() });
+    if (!workspace) return res.status(404).json({ message: 'Invalid join code — ask your admin for the current one' });
+    if (workspace.status !== 'active') return res.status(403).json({ message: 'That workspace is suspended' });
+    role = 'staff';
+  } else {
+    workspace = await Workspace.create({
+      name: companyName || `${name}'s Workspace`,
+      slug: `${slugify(companyName || name)}-${Date.now().toString(36).slice(-4)}`,
+      joinCode: genJoinCode(),
+      settings: { managerName: name },
+    });
+    role = 'admin';
+  }
+
+  const count = await User.countDocuments({ workspace: workspace._id });
+  const user = await User.create({
+    name, email, phone, password, role,
+    workspace: workspace._id, activeWorkspace: workspace._id,
+    employeeId: `EMP-${String(count + 1).padStart(3, '0')}`,
+  });
+  if (!joinCode) { workspace.owner = user._id; await workspace.save(); }
+  res.status(201).json(await issueTokens(user, !!remember));
 };
 
 export const login = async (req, res) => {
@@ -33,7 +71,7 @@ export const login = async (req, res) => {
   if (!user || !user.password || !(await user.match(password))) return res.status(401).json({ message: 'Invalid credentials' });
   if (user.status !== 'active') return res.status(403).json({ message: 'Account is deactivated — contact admin' });
   logActivity(user, 'login', 'signed in');
-  res.json(issueTokens(user, !!remember));
+  res.json(await issueTokens(user, !!remember));
 };
 
 export const googleLogin = async (req, res) => {
@@ -43,9 +81,16 @@ export const googleLogin = async (req, res) => {
     payload = ticket.getPayload();
   } catch { return res.status(401).json({ message: 'Invalid Google credential' }); }
   let user = await User.findOne({ $or: [{ googleId: payload.sub }, { email: payload.email }] });
-  if (!user) user = await User.create({ name: payload.name || payload.email, email: payload.email, googleId: payload.sub, role: 'staff', employeeId: await nextEmpId() });
+  if (!user) {
+    user = await User.create({ name: payload.name || payload.email, email: payload.email, googleId: payload.sub, role: 'staff', employeeId: `EMP-${Date.now().toString().slice(-4)}` });
+  }
+  if (!user.workspace) {
+    const ws = await soloWorkspace(user.name);
+    user.workspace = ws._id; user.activeWorkspace = ws._id; user.role = 'admin';
+    ws.owner = user._id; await user.save(); await ws.save();
+  }
   if (user.status !== 'active') return res.status(403).json({ message: 'Account is deactivated' });
-  res.json(issueTokens(user, true));
+  res.json(await issueTokens(user, true));
 };
 
 export const phoneRequest = async (req, res) => {
@@ -73,9 +118,16 @@ export const phoneVerify = async (req, res) => {
   if (!tok || tok.used || tok.expiresAt < new Date() || tok.token !== hash(otp || '')) return res.status(400).json({ message: 'Invalid or expired OTP' });
   tok.used = true; await tok.save();
   let user = await User.findOne({ phone });
-  if (!user) user = await User.create({ name: name || `Staff ${phone.slice(-4)}`, phone, role: 'staff', employeeId: await nextEmpId() });
+  if (!user) {
+    user = await User.create({ name: name || `Staff ${phone.slice(-4)}`, phone, role: 'staff', employeeId: `EMP-${Date.now().toString().slice(-4)}` });
+  }
+  if (!user.workspace) {
+    const ws = await soloWorkspace(user.name);
+    user.workspace = ws._id; user.activeWorkspace = ws._id; user.role = 'admin';
+    ws.owner = user._id; await user.save(); await ws.save();
+  }
   if (user.status !== 'active') return res.status(403).json({ message: 'Account is deactivated' });
-  res.json(issueTokens(user, true));
+  res.json(await issueTokens(user, true));
 };
 
 export const forgot = async (req, res) => {
@@ -118,7 +170,7 @@ export const refresh = async (req, res) => {
   } catch { res.status(401).json({ message: 'Invalid refresh token' }); }
 };
 
-export const me = (req, res) => res.json(req.user);
+export const me = async (req, res) => res.json(await withWorkspaceInfo(req.user));
 
 export const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;

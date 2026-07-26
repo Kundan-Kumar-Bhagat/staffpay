@@ -42,6 +42,7 @@ export default function Verify() {
           <div className="verify-result ok">
             <span className="verify-stamp">✓ VERIFIED</span>
             <div className="verify-grid">
+              <div><span>Issued by</span><b>{result.company}</b></div>
               <div><span>Slip no.</span><b className="mono">{result.serial}</b></div>
               <div><span>Pay period</span><b>{result.month}</b></div>
               <div><span>Employee</span><b>{result.employee}</b></div>

@@ -2040,3 +2040,23 @@ tr.dim {
 .backup-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; transition: .15s; }
 .backup-row:hover { border-color: var(--pine); transform: translateY(-1px); }
 @media (max-width: 640px) { .backup-row { flex-direction: column; align-items: flex-start; } .offline-bar { top: 57px; padding: 9px 14px; } }
+
+/* ── tenancy ── */
+.plan-chip { font: 700 9px var(--body); font-style: normal; text-transform: uppercase; letter-spacing: .8px; padding: 2px 7px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.plan-trial { background: #FBEED7; color: #8F621F; border: 1px solid var(--amber); }
+.plan-pro { background: var(--pine); color: #fff; }
+.side-ws { display: flex; align-items: center; flex-wrap: wrap; }
+.join-input { letter-spacing: 6px; text-align: center; font-size: 17px; }
+.ws-switch { position: relative; }
+.ws-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 250px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 34px rgba(13,31,27,.18); z-index: 70; overflow: hidden; animation: popIn .18s ease; }
+.ws-menu-head { font: 700 10.5px var(--body); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 10px 14px 6px; }
+.ws-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 10px 14px; border: 0; background: #fff; cursor: pointer; border-top: 1px dashed var(--line); transition: .13s; }
+.ws-item:hover { background: var(--soft); transform: translateX(2px); }
+.ws-item.current { background: var(--soft); border-left: 3px solid var(--amber); }
+.ws-item b { font-size: 13px; }
+.ws-item span { font-size: 11px; color: var(--muted); display: flex; align-items: center; }
+.plan-select { font-weight: 700; text-transform: uppercase; font-size: 11px !important; }
+.ws-panel { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; border: 1.5px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; }
+.join-code { display: flex; align-items: center; gap: 8px; }
+.join-code code { font: 700 17px var(--mono); letter-spacing: 4px; background: var(--soft); border: 1.5px dashed var(--pine); color: var(--pine); border-radius: 8px; padding: 8px 14px; }
+@media (max-width: 640px) { .ws-panel { flex-direction: column; align-items: flex-start; } }

@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import * as c from '../controllers/attendance.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { tenant } from '../middleware/tenant.js';
 const r = Router();
-r.use(protect);
+r.use(protect, tenant);
 r.get('/today', c.today);
 r.post('/checkin', c.checkIn);
 r.post('/checkout', c.checkOut);

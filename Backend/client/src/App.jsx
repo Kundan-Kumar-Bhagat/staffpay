@@ -17,6 +17,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Leave from './pages/Leave';
 import Verify from './pages/Verify';
+import Workspaces from './pages/Workspaces';
 
 const BootScreen = () => (
   <div className="boot"><span className="logo-mark big">SP</span><div className="boot-bar"><i /></div></div>
@@ -30,6 +31,10 @@ function RequireAuth({ children }) {
 function RequireRole({ roles, children }) {
   const { user } = useAuth();
   return roles.includes(user.role) ? children : <Navigate to="/" replace />;
+}
+function SuperOnly({ children }) {
+  const { user } = useAuth();
+  return user.superAdmin ? children : <Navigate to="/" replace />;
 }
 function PublicOnly({ children }) {
   const { user, loading } = useAuth();
@@ -58,6 +63,7 @@ export default function App() {
                 <Route path="/reports" element={<RequireRole roles={['admin', 'manager']}><Reports /></RequireRole>} />
                 <Route path="/staff" element={<RequireRole roles={['admin']}><Staff /></RequireRole>} />
                 <Route path="/settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
+                <Route path="/workspaces" element={<SuperOnly><Workspaces /></SuperOnly>} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

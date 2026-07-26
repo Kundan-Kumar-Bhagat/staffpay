@@ -18,3 +18,6 @@ export const protect = async (req, res, next) => {
 
 export const authorize = (...roles) => (req, res, next) =>
   roles.includes(req.user.role) ? next() : res.status(403).json({ message: 'Your role cannot access this' });
+
+export const superOnly = (req, res, next) =>
+  req.user.superAdmin ? next() : res.status(403).json({ message: 'Platform admins only' });

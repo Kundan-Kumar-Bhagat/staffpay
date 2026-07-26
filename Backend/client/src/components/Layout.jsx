@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompany } from '../context/CompanyContext';
-import { Icon, RoleBadge } from './ui';
+import { Icon, RoleBadge, useToast } from './ui';
 import { initials } from '../utils/format';
 import NotificationsBell from './Notifications';
 import OfflineBanner from './OfflineBanner';
+import api from '../api/client';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: 'grid', roles: ['admin', 'manager', 'staff'] },
@@ -17,6 +18,7 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: 'chart', roles: ['admin', 'manager'] },
   { to: '/staff', label: 'Staff', icon: 'users', roles: ['admin'] },
   { to: '/settings', label: 'Settings', icon: 'gear', roles: ['admin'] },
+  { to: '/workspaces', label: 'Workspaces', icon: 'grid', roles: ['admin'], super: true },
 ];
 
 function Clock() {
@@ -30,13 +32,51 @@ function Clock() {
   );
 }
 
+function WorkspaceSwitcher() {
+  const { user, setUser } = useAuth();
+  const { reload } = useCompany();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [all, setAll] = useState([]);
+  const ref = useRef();
+  useEffect(() => {
+    api.get('/workspaces').then(r => setAll(r.data)).catch(() => {});
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  const switchTo = async id => {
+    const { data } = await api.post(`/workspaces/${id}/switch`);
+    setUser(data.user); reload(); setOpen(false);
+    toast(`Now working in ${data.user.workspaceInfo.name}`);
+  };
+  return (
+    <div className="ws-switch" ref={ref}>
+      <button className="btn btn-ghost btn-sm" onClick={() => setOpen(o => !o)}>
+        <Icon name="grid" size={14} /> {user.workspaceInfo?.name?.split(' ')[0] || 'Workspace'} ▾
+      </button>
+      {open && (
+        <div className="ws-menu">
+          <div className="ws-menu-head">Switch workspace</div>
+          {all.map(ws => (
+            <button key={ws._id} className={`ws-item ${String(ws._id) === String(user.workspaceInfo?.id) ? 'current' : ''}`} onClick={() => switchTo(ws._id)}>
+              <b>{ws.name}</b>
+              <span>{ws.staff} staff · <i className={`plan-chip plan-${ws.plan}`}>{ws.plan}</i></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { company } = useCompany();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const nav = useNavigate();
-  const items = NAV.filter(n => n.roles.includes(user.role));
+  const items = NAV.filter(n => n.roles.includes(user.role) && (!n.super || user.superAdmin));
   const title = items.find(i => i.to === loc.pathname)?.label || 'My Profile';
 
   return (
@@ -45,7 +85,10 @@ export default function Layout() {
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="side-brand">
           <span className="logo-mark">SP</span>
-          <div><strong>StaffPay</strong><span>Payroll Console</span></div>
+          <div>
+            <strong>StaffPay</strong>
+            <span className="side-ws">{user.workspaceInfo?.name || 'No workspace'} <i className={`plan-chip plan-${user.workspaceInfo?.plan}`}>{user.workspaceInfo?.plan}</i></span>
+          </div>
         </div>
         <nav className="side-nav">
           {items.map(i => (
@@ -66,6 +109,7 @@ export default function Layout() {
         <header className="topbar">
           <button className="icon-btn menu-btn" onClick={() => setOpen(true)}><Icon name="menu" /></button>
           <div className="topbar-title"><h2>{title}</h2><span>{company?.name}</span></div>
+          {user.superAdmin && <WorkspaceSwitcher />}
           <Clock />
           <NotificationsBell />
           <button className="userchip" onClick={() => nav('/profile')}>

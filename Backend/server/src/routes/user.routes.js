@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import * as c from '../controllers/user.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { tenant } from '../middleware/tenant.js';
 const r = Router();
-r.use(protect);
+r.use(protect, tenant);
 r.get('/', authorize('admin', 'manager'), c.list);
 r.post('/', authorize('admin'), c.create);
 r.put('/:id', authorize('admin'), c.update);

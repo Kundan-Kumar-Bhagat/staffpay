@@ -5,6 +5,8 @@ import { PageHead, Btn, Field, useToast, Reveal, Toggle, Modal } from '../compon
 import PayslipDoc from '../components/PayslipDoc';
 import { monthLabel, currentMonth, downloadUrl, dstr } from '../utils/format';
 
+import { useAuth } from '../context/AuthContext';
+
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function IntegRow({ ok, label, hint, okLabel = 'connected', offLabel = 'off', onTest, testing }) {
@@ -19,9 +21,20 @@ function IntegRow({ ok, label, hint, okLabel = 'connected', offLabel = 'off', on
 }
 
 export default function Settings() {
+  const { user, setUser } = useAuth();
   const { company, reload } = useCompany();
   const toast = useToast();
   const [form, setForm] = useState(null);
+  const [rotating, setRotating] = useState(false);
+  const rotate = async () => {
+    setRotating(true);
+    try {
+      const { data } = await api.post('/workspaces/join-code/rotate');
+      setUser({ ...user, workspaceInfo: { ...user.workspaceInfo, joinCode: data.joinCode } });
+      toast('New join code issued — the old one stops working');
+    } catch { toast('Rotation failed', 'err'); }
+    setRotating(false);
+  };
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [sample, setSample] = useState(null);
@@ -88,6 +101,19 @@ export default function Settings() {
       <PageHead title="Settings" sub="Company identity, payroll rules and working schedule. Every payslip carries these details." />
       <Reveal>
         <form onSubmit={save} className="card stack settings-form">
+          <h4 className="sect">Workspace</h4>
+          <div className="ws-panel">
+            <div className="integ-meta">
+              <b>{user.workspaceInfo?.name} <i className={`plan-chip plan-${user.workspaceInfo?.plan}`}>{user.workspaceInfo?.plan}</i></b>
+              <span>Share the join code — new signups land in this workspace as staff</span>
+            </div>
+            <div className="join-code">
+              <code>{user.workspaceInfo?.joinCode || '—'}</code>
+              <Btn type="button" variant="ghost" className="btn-sm" onClick={() => { navigator.clipboard.writeText(user.workspaceInfo?.joinCode || ''); toast('Join code copied'); }}>Copy</Btn>
+              <Btn type="button" variant="ghost" className="btn-sm" onClick={rotate} disabled={rotating}>{rotating ? '…' : 'Rotate'}</Btn>
+            </div>
+          </div>
+
           <h4 className="sect">Company identity (printed on payslips & invoices)</h4>
           <div className="grid-3">
             <Field label="Company name"><input className="input" required value={form.name} onChange={set('name')} /></Field>

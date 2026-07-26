@@ -3,12 +3,13 @@ import User from '../models/User.js';
 import Attendance from '../models/Attendance.js';
 import Leave from '../models/Leave.js';
 import Payslip from '../models/Payslip.js';
-import Company from '../models/Company.js';
+import Workspace, { companyView } from '../models/Workspace.js';
+import { runInTenant } from '../utils/tenantContext.js';
 import { sendMail } from '../services/mail.service.js';
 import { dstr, currentMonth, fmtMoney } from '../utils/helpers.js';
 
 export async function buildDigest() {
-  const company = (await Company.findOne()) || {};
+  const company = companyView({});
   const today = dstr();
   const month = currentMonth();
   const [staff, todayAtt, pending, slips, monthAtt] = await Promise.all([
@@ -72,12 +73,17 @@ export async function buildDigest() {
 }
 
 export async function sendDigest() {
-  const { html, subject } = await buildDigest();
-  const managers = await User.find({ role: { $in: ['admin', 'manager'] }, status: 'active' });
-  const to = managers.map(m => m.email).filter(Boolean);
-  let sent = 0;
-  for (const addr of to) if (await sendMail({ to: addr, subject, html })) sent++;
-  return { sent, recipients: to.length, subject };
+  let sent = 0, recipients = 0;
+  for (const ws of await Workspace.find({ status: 'active' })) {
+    await runInTenant(ws._id, async () => {
+      const { html, subject } = await buildDigest();
+      const managers = await User.find({ role: { $in: ['admin', 'manager'] }, status: 'active' });
+      const to = managers.map(m => m.email).filter(Boolean);
+      recipients += to.length;
+      for (const addr of to) if (await sendMail({ to: addr, subject, html })) sent++;
+    });
+  }
+  return { sent, recipients };
 }
 
 export function startDigestJob() {

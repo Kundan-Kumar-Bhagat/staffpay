@@ -11,8 +11,10 @@ import { attendanceXLSX } from '../services/excel.service.js';
 import { currentMonth, dstr } from '../utils/helpers.js';
 import { buildDigest, sendDigest } from '../jobs/digest.job.js';
 
+import { tenant } from '../middleware/tenant.js';
+
 const r = Router();
-r.use(protect, authorize('admin', 'manager'));
+r.use(protect, tenant, authorize('admin', 'manager'));
 r.get('/summary', c.summary);
 r.get('/daily', c.daily);
 r.get('/trend', c.trend);
