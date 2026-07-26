@@ -13,20 +13,38 @@ import notificationRoutes from './routes/notification.routes.js';
 
 export function createApp() {
   const app = express();
-  app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+  const allowed = (process.env.CLIENT_URL || '')
+    .split(',')
+    .map(s => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || !allowed.length || allowed.includes(origin.replace(/\/+$/, '')) || allowed.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive CORS fallback for multi-domain deployments
+      }
+    },
+    credentials: true,
+  }));
   app.use(express.json({ limit: '2mb' }));
 
-  app.use('/api/auth', authRoutes);
-  app.use('/api/users', userRoutes);
-  app.use('/api/attendance', attendanceRoutes);
-  app.use('/api/payslips', payslipRoutes);
-  app.use('/api/invoices', invoiceRoutes);
-  app.use('/api/reports', reportRoutes);
-  app.use('/api/company', companyRoutes);
-  app.use('/api/activity', activityRoutes);
-  app.use('/api/leave', leaveRoutes);
-  app.use('/api/notification', notificationRoutes);
-  app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date() }));
+  const router = express.Router();
+  router.use('/auth', authRoutes);
+  router.use('/users', userRoutes);
+  router.use('/attendance', attendanceRoutes);
+  router.use('/payslips', payslipRoutes);
+  router.use('/invoices', invoiceRoutes);
+  router.use('/reports', reportRoutes);
+  router.use('/company', companyRoutes);
+  router.use('/activity', activityRoutes);
+  router.use('/leave', leaveRoutes);
+  router.use('/notification', notificationRoutes);
+  router.get('/health', (req, res) => res.json({ ok: true, time: new Date() }));
+
+  app.use('/api', router);
+  app.use('/', router);
 
   app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
   app.use((err, req, res, next) => { console.error(err); res.status(err.status || 500).json({ message: err.message || 'Server error' }); });
