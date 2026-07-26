@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import * as c from '../controllers/user.controller.js';
+import { protect, authorize } from '../middleware/auth.js';
+const r = Router();
+r.use(protect);
+r.get('/', authorize('admin', 'manager'), c.list);
+r.post('/', authorize('admin'), c.create);
+r.put('/:id', authorize('admin'), c.update);
+r.delete('/:id', authorize('admin'), c.remove);
+export default r;

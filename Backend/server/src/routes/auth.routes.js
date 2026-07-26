@@ -1,0 +1,15 @@
+import { Router } from 'express';
+import * as c from '../controllers/auth.controller.js';
+import { protect } from '../middleware/auth.js';
+const r = Router();
+r.post('/register', c.register);
+r.post('/login', c.login);
+r.post('/google', c.googleLogin);
+r.post('/phone/request', c.phoneRequest);
+r.post('/phone/verify', c.phoneVerify);
+r.post('/forgot', c.forgot);
+r.post('/reset', c.reset);
+r.post('/refresh', c.refresh);
+r.get('/me', protect, c.me);
+r.put('/password', protect, c.changePassword);
+export default r;

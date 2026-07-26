@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import * as c from '../controllers/invoice.controller.js';
+import { protect, authorize } from '../middleware/auth.js';
+const r = Router();
+r.use(protect, authorize('admin', 'manager'));
+r.get('/', c.list);
+r.post('/', c.create);
+r.put('/:id', c.update);
+r.delete('/:id', c.remove);
+r.get('/:id/pdf', c.pdf);
+r.get('/:id/xlsx', c.xlsx);
+r.post('/:id/email', c.emailInvoice);
+export default r;

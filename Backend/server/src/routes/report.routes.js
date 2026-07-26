@@ -1,0 +1,20 @@
+import { Router } from 'express';
+import * as c from '../controllers/report.controller.js';
+import { protect, authorize } from '../middleware/auth.js';
+import Attendance from '../models/Attendance.js';
+import { attendanceXLSX } from '../services/excel.service.js';
+import { currentMonth } from '../utils/helpers.js';
+const r = Router();
+r.use(protect, authorize('admin', 'manager'));
+r.get('/summary', c.summary);
+r.get('/daily', c.daily);
+r.get('/trend', c.trend);
+r.get('/staff', c.staffMonth);
+r.get('/attendance-xlsx', async (req, res) => {
+  const month = req.query.month || currentMonth();
+  const rows = await Attendance.find({ date: { $regex: `^${month}` } }).populate('user', 'name employeeId designation').sort('date');
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="attendance-${month}.xlsx"`);
+  res.send(await attendanceXLSX(rows, month));
+});
+export default r;
