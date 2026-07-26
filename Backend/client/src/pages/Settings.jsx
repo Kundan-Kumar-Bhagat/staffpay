@@ -3,9 +3,20 @@ import api from '../api/client';
 import { useCompany } from '../context/CompanyContext';
 import { PageHead, Btn, Field, useToast, Reveal, Toggle, Modal } from '../components/ui';
 import PayslipDoc from '../components/PayslipDoc';
-import { monthName as monthLabel, currentMonth } from '../utils/format';
+import { monthLabel, currentMonth } from '../utils/format';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function IntegRow({ ok, label, hint, okLabel = 'connected', offLabel = 'off', onTest, testing }) {
+  return (
+    <div className={`integ-row ${ok ? 'ok' : ''}`}>
+      <span className="integ-dot" />
+      <div className="integ-meta"><b>{label}</b><span>{hint}</span></div>
+      <span className={`pill ${ok ? 'st-present' : 'st-late'}`}>{ok ? okLabel : offLabel}</span>
+      {onTest && ok && <Btn type="button" variant="ghost" className="btn-sm" onClick={onTest} disabled={testing}>{testing ? 'Sending…' : 'Test'}</Btn>}
+    </div>
+  );
+}
 
 export default function Settings() {
   const { company, reload } = useCompany();
@@ -14,6 +25,19 @@ export default function Settings() {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [sample, setSample] = useState(null);
+  const [integrations, setIntegrations] = useState(null);
+  const [waTesting, setWaTesting] = useState(false);
+
+  useEffect(() => {
+    api.get('/company/integrations').then(r => setIntegrations(r.data)).catch(() => {});
+  }, []);
+
+  const testWa = async () => {
+    setWaTesting(true);
+    try { const { data } = await api.post('/company/integrations/test-whatsapp'); toast(data.message, data.ok ? 'ok' : 'err'); }
+    catch (e) { toast(e.response?.data?.message || 'Test failed', 'err'); }
+    setWaTesting(false);
+  };
 
   useEffect(() => {
     Promise.all([api.get('/payslips'), api.get('/users')]).then(([ps, us]) => {
@@ -138,6 +162,16 @@ export default function Settings() {
             <Field label="Sick"><input className="input" type="number" min="0" value={form.leaveQuotas?.sick ?? 8} onChange={e => setQuota('sick', e.target.value)} /></Field>
             <Field label="Unpaid"><input className="input" type="number" min="0" value={form.leaveQuotas?.unpaid ?? 30} onChange={e => setQuota('unpaid', e.target.value)} /></Field>
           </div>
+
+          <h4 className="sect">Integrations</h4>
+          {integrations ? (
+            <div className="integ-grid">
+              <IntegRow ok={integrations.email} label="Email (SMTP)" hint="Reset codes • payslip & invoice delivery" />
+              <IntegRow ok={integrations.sms} label="SMS (Twilio)" hint="Phone OTP login" />
+              <IntegRow ok={integrations.whatsapp} label="WhatsApp Business" hint="Staff alerts • payslip PDFs on payday" onTest={testWa} testing={waTesting} />
+              <IntegRow ok={integrations.autoPayroll} label="Auto-payroll" hint="Closes the month on the 1st at 06:00" okLabel="armed" offLabel="off" />
+            </div>
+          ) : <p className="muted">Loading integration status…</p>}
 
           <h4 className="sect">Company bank (printed on invoices)</h4>
           <div className="grid-3">

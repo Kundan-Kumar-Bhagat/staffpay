@@ -4,6 +4,7 @@ import Company from '../models/Company.js';
 import { computeAndSavePayslip } from '../services/payroll.service.js';
 import { payslipPDF, pdfBuffer } from '../services/pdf.service.js';
 import { sendMail } from '../services/mail.service.js';
+import { sendWhatsAppDocument } from '../services/whatsapp.service.js';
 import { fmtMoney, prevMonth, currentMonth } from '../utils/helpers.js';
 import { logActivity } from '../utils/log.js';
 import { notify } from '../utils/notify.js';
@@ -11,27 +12,33 @@ import { notify } from '../utils/notify.js';
 export async function runPayroll(month, { email = true } = {}) {
   const company = await Company.findOne();
   const users = await User.find({ status: 'active', role: { $in: ['staff', 'manager'] } });
-  let generated = 0, mailed = 0;
+  let generated = 0, mailed = 0, waSent = 0;
 
   for (const u of users) {
     const slip = await computeAndSavePayslip(u, month, company, null);
     generated++;
     notify(u, 'payslip', 'Payslip issued', `Your payslip ${slip.serial} for ${slip.monthName} is ready — net ${fmtMoney(slip.net, company?.currency)}.`, '/payslips');
-    if (email && u.email) {
-      try {
-        const pdf = await pdfBuffer(payslipPDF(slip, company, u));
+
+    const wantMail = email && !!u.email;
+    const wantWa = process.env.WA_NOTIFY === 'true' && !!u.phone;
+    if (!wantMail && !wantWa) continue;
+    try {
+      const pdf = await pdfBuffer(payslipPDF(slip, company, u));
+      if (wantMail) {
         const sent = await sendMail({
           to: u.email,
           subject: `Your payslip for ${slip.monthName} — ${company?.name || 'StaffPay'}`,
-          text: `Hi ${u.name},\n\nYour payslip (${slip.serial}) for ${slip.monthName} is ready.\nNet pay: ${fmtMoney(slip.net, company?.currency)}.\n\nVerify it anytime at the verification portal using your slip number.\n\n${company?.name || ''}`,
+          text: `Hi ${u.name},\n\nYour payslip (${slip.serial}) for ${slip.monthName} is ready.\nNet pay: ${fmtMoney(slip.net, company?.currency)}.\n\n${company?.name || ''}`,
           attachments: [{ filename: `${slip.serial}.pdf`, content: pdf }],
         });
         if (sent) mailed++;
-      } catch (e) { console.error(`✗ Mail failed for ${u.email}:`, e.message); }
-    }
+      }
+      if (wantWa && await sendWhatsAppDocument(u.phone, pdf, `${slip.serial}.pdf`,
+        `Your payslip for ${slip.monthName} — ${company?.name || 'StaffPay'}`)) waSent++;
+    } catch (e) { console.error(`✗ Delivery failed for ${u.name}:`, e.message); }
   }
-  logActivity(null, 'payslip', `auto-payroll ran for ${month} — ${generated} slips generated, ${mailed} emailed`);
-  return { generated, mailed };
+  logActivity(null, 'payslip', `auto-payroll ran for ${month} — ${generated} slips, ${mailed} emailed, ${waSent} on WhatsApp`);
+  return { generated, mailed, waSent };
 }
 
 export function startJobs() {
@@ -44,7 +51,7 @@ export function startJobs() {
     const month = prevMonth(currentMonth());
     console.log(`▶ Auto-payroll starting for ${month}`);
     const out = await runPayroll(month, { email: true });
-    console.log(`✓ Auto-payroll done — ${out.generated} generated, ${out.mailed} emailed`);
+    console.log(`✓ Auto-payroll done — ${out.generated} generated, ${out.mailed} emailed, ${out.waSent} on WhatsApp`);
   });
   console.log('◆ Auto-payroll scheduled — 06:00 on the 1st of each month');
 }
