@@ -2118,3 +2118,11 @@ tr.dim {
 .swatches code { font: 600 12px var(--mono); color: var(--muted); }
 .brand-hint { font-size: 12px; max-width: 460px; }
 @media (max-width: 760px) { .brand-panel { grid-template-columns: 1fr; } }
+
+/* ── disbursement sheet ── */
+.disb-totals { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; background: var(--soft); border-radius: 10px; padding: 14px 18px; }
+.disb-totals strong { font-size: 22px; display: block; }
+.mode-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.mode-chip { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12px; }
+.mode-chip b { text-transform: uppercase; font-size: 10px; letter-spacing: .6px; color: var(--pine); margin-right: 5px; }
+.disb-list { max-height: 320px; overflow-y: auto; }

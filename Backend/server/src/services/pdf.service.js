@@ -346,6 +346,88 @@ export function voucherPDF(v, company) {
   return doc;
 }
 
+export function disbursementPDF(vouchers, company, range) {
+  const cur = company.currency;
+  const accent = brandAccent(company);
+  const logo = loadLogo(company);
+  const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
+  const W = 595.28, M = 36, CW = W - M * 2;
+  const total = vouchers.reduce((s, v) => s + v.net, 0);
+  const byMode = {};
+  vouchers.forEach(v => byMode[v.paymentMode] = (byMode[v.paymentMode] || 0) + v.net);
+
+  doc.rect(0, 0, W, 84).fill(accent);
+  doc.rect(0, 84, W, 4).fill(AMBER);
+  let nx = M;
+  if (logo) { try { doc.image(logo, M, 16, { fit: [48, 48] }); nx = M + 58; } catch {} }
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(16).text(company.name, nx, 18, { width: 300 });
+  doc.fontSize(8.4).fillColor('#DDE8E2').text(`${company.city}, ${company.country}${company.taxId ? ' • GSTIN: ' + company.taxId : ''}`, nx, 38, { width: 300 });
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(17).text('DISBURSEMENT SHEET', W - M, 18, { align: 'right' });
+  doc.fillColor(AMBER).font('Helvetica-Bold').fontSize(10).text(`${range.from || 'all'} → ${range.to || '—'}`, W - M, 40, { align: 'right' });
+  doc.fillColor('#DDE8E2').font('Helvetica').fontSize(8).text(`Generated ${new Date().toLocaleDateString('en-GB')} • ${vouchers.length} voucher(s)`, W - M, 54, { align: 'right' });
+
+  const cols = [
+    { l: '#', w: 20 }, { l: 'Voucher', w: 64 }, { l: 'Payee', w: 108 }, { l: 'ID', w: 72 },
+    { l: 'Work', w: 106 }, { l: 'Mode', w: 42 }, { l: 'Amount', w: 58, right: true }, { l: 'Signature', w: 53 },
+  ];
+  const rowH = 26;
+  let y = 104;
+  const drawHead = () => {
+    doc.rect(M, y, CW, 20).fill(accent);
+    let cx = M;
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.6);
+    cols.forEach(c => { doc.text(c.l.toUpperCase(), cx + 5, y + 6.5, { width: c.w - 8, align: c.right ? 'right' : 'left' }); cx += c.w; });
+    y += 20;
+  };
+  drawHead();
+
+  vouchers.forEach((v, i) => {
+    if (y > doc.page.height - 130) { doc.addPage(); y = M; drawHead(); }
+    if (i % 2 === 0) doc.rect(M, y, CW, rowH).fill(SOFT);
+    let cx = M;
+    doc.fillColor(INK).font('Helvetica').fontSize(8);
+    const cells = [String(i + 1), v.number, v.payee.name, v.payee.idNumber || '—', v.description, v.paymentMode, fmtMoney(v.net, cur)];
+    cols.forEach((c, idx) => {
+      if (idx === 7) {
+        doc.moveTo(cx + 6, y + rowH - 6).lineTo(cx + c.w - 6, y + rowH - 6).strokeColor(LINE).lineWidth(0.6).stroke();
+      } else {
+        doc.text(cells[idx], cx + 5, y + 9, { width: c.w - 8, align: c.right ? 'right' : 'left', height: rowH - 6, ellipsis: true });
+      }
+      cx += c.w;
+    });
+    doc.rect(M, y, CW, rowH).strokeColor(LINE).lineWidth(0.4).stroke();
+    y += rowH;
+  });
+
+  y += 8;
+  doc.rect(M, y, CW, 26).fill(accent);
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10);
+  doc.text(`TOTAL — ${vouchers.length} voucher(s)`, M + 10, y + 8.5);
+  doc.text(fmtMoney(total, cur), W - M - 10, y + 8.5, { align: 'right' });
+  y += 34;
+
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(9)
+    .text(Object.entries(byMode).map(([m, val]) => `${m.toUpperCase()}: ${fmtMoney(val, cur)}`).join('      '), M, y, { width: CW });
+  doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(7).text('AMOUNT IN WORDS', M, y + 16);
+  doc.fillColor(INK).font('Helvetica').fontSize(9).text(amountInWords(total, cur), M + 92, y + 16, { width: CW - 92 });
+  y += 48;
+
+  const sigY = y + 18;
+  [['Prepared by', M], ['Approved by', M + CW / 2 - 70], ['Cashier / disbursed by', W - M - 150]].forEach(([label, x]) => {
+    doc.moveTo(x, sigY).lineTo(x + 140, sigY).strokeColor(INK).lineWidth(0.8).stroke();
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(8.5).text(label, x, sigY + 5);
+  });
+
+  const pages = doc.bufferedPageRange();
+  for (let i = 0; i < pages.count; i++) {
+    doc.switchToPage(i);
+    doc.fillColor(MUTED).font('Helvetica').fontSize(7)
+      .text(`Disbursement sheet — ${company.name} • ${range.from || 'all'} → ${range.to || '—'} • Page ${i + 1} of ${pages.count}`, M, doc.page.height - 24, { width: CW });
+  }
+  doc.end();
+  return doc;
+}
+
 export const pdfBuffer = doc => new Promise((resolve, reject) => {
   const chunks = [];
   doc.on('data', c => chunks.push(c));

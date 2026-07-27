@@ -3,7 +3,7 @@ import { tenantScope } from './plugins/tenantScope.js';
 
 const voucherSchema = new mongoose.Schema({
   number: { type: String, unique: true },
-  payee: { name: { type: String, required: true }, phone: String, idType: String, idNumber: String, address: String },
+  payee: { name: { type: String, required: true }, phone: String, email: String, idType: String, idNumber: String, address: String },
   description: { type: String, required: true },
   from: String, to: String,
   qty: { type: Number, default: 1 },

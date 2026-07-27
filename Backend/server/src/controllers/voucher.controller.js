@@ -1,6 +1,7 @@
 import Voucher from '../models/Voucher.js';
 import Workspace from '../models/Workspace.js';
-import { voucherPDF, pdfBuffer } from '../services/pdf.service.js';
+import { waEnabled, sendWhatsAppDocument } from '../services/whatsapp.service.js';
+import { voucherPDF, pdfBuffer, disbursementPDF } from '../services/pdf.service.js';
 import { sendMail } from '../services/mail.service.js';
 import { logActivity } from '../utils/log.js';
 import { fmtMoney } from '../utils/helpers.js';
@@ -48,7 +49,66 @@ export const markPaid = async (req, res) => {
   if (req.body.paymentMode) v.paymentMode = req.body.paymentMode;
   await v.save();
   logActivity(req.user, 'invoice', `marked voucher ${v.number} as paid (${v.paymentMode})`);
+
+  if (v.payee.phone && waEnabled()) {
+    pdfBuffer(voucherPDF(v, req.company))
+      .then(buf => sendWhatsAppDocument(v.payee.phone, buf, `${v.number}.pdf`,
+        `Payment received — voucher ${v.number} from ${req.company.name}, ${fmtMoney(v.net, req.company.currency)}. Thank you for your work.`))
+      .then(ok => ok && logActivity(req.user, 'invoice', `WhatsApped voucher ${v.number} to ${v.payee.phone}`))
+      .catch(() => {});
+  }
   res.json(v);
+};
+
+export const deliver = async (req, res) => {
+  const v = await Voucher.findById(req.params.id);
+  if (!v) return res.status(404).json({ message: 'Voucher not found' });
+  const company = req.company;
+  const { channel = 'whatsapp', to } = req.body;
+
+  if (channel === 'email') {
+    const addr = to || v.payee.email;
+    if (!addr) return res.status(400).json({ message: 'No email — pass { "to": "…" } (this payee has no email on record)' });
+    const buf = await pdfBuffer(voucherPDF(v, company));
+    const sent = await sendMail({
+      to: addr, subject: `Payment voucher ${v.number} — ${company.name}`,
+      text: `Dear ${v.payee.name},\n\nAttached: payment voucher ${v.number} for ${fmtMoney(v.net, company.currency)}.\n\n${company.name}`,
+      attachments: [{ filename: `${v.number}.pdf`, content: buf }],
+    });
+    return res.json({ ok: sent, message: sent ? `Emailed to ${addr}` : 'SMTP not configured' });
+  }
+
+  if (!v.payee.phone) return res.status(400).json({ message: 'This payee has no phone number on record' });
+  const buf = await pdfBuffer(voucherPDF(v, company));
+  const ok = await sendWhatsAppDocument(v.payee.phone, buf, `${v.number}.pdf`,
+    `Payment voucher ${v.number} — ${company.name}. Amount ${fmtMoney(v.net, company.currency)} (${v.status}).`);
+  if (ok) logActivity(req.user, 'invoice', `sent voucher ${v.number} to ${v.payee.phone} on WhatsApp`);
+  res.json({ ok, message: ok ? `Sent to ${v.payee.phone} on WhatsApp` : 'WhatsApp not configured or send failed — add WA_* keys' });
+};
+
+const rangeFilter = q => {
+  const filter = {};
+  if (q.status) filter.status = q.status;
+  if (q.from || q.to) {
+    filter.createdAt = {};
+    if (q.from) filter.createdAt.$gte = new Date(q.from + 'T00:00:00');
+    if (q.to) filter.createdAt.$lte = new Date(q.to + 'T23:59:59');
+  }
+  return filter;
+};
+
+export const disbursement = async (req, res) => {
+  const vouchers = await Voucher.find(rangeFilter(req.query)).sort('createdAt');
+  const byMode = {};
+  vouchers.forEach(v => byMode[v.paymentMode] = (byMode[v.paymentMode] || 0) + v.net);
+  res.json({ vouchers, count: vouchers.length, total: vouchers.reduce((s, v) => s + v.net, 0), byMode });
+};
+
+export const disbursementPdf = async (req, res) => {
+  const vouchers = await Voucher.find(rangeFilter(req.query)).sort('createdAt');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="disbursement-${req.query.from || 'all'}${req.query.to ? '-' + req.query.to : ''}.pdf"`);
+  disbursementPDF(vouchers, req.company, { from: req.query.from, to: req.query.to }).pipe(res);
 };
 
 export const remove = async (req, res) => { await Voucher.findByIdAndDelete(req.params.id); res.json({ message: 'Voucher deleted' }); };
@@ -64,7 +124,7 @@ export const pdf = async (req, res) => {
 export const emailVoucher = async (req, res) => {
   const v = await Voucher.findById(req.params.id);
   if (!v) return res.status(404).json({ message: 'Voucher not found' });
-  const to = req.body.to || v.payee.phone && v.payee.email ? v.payee.email : req.body.to;
+  const to = req.body.to || (v.payee.phone && v.payee.email ? v.payee.email : req.body.to);
   if (!to) return res.status(400).json({ message: 'Pass { "to": "email" } — the payee has no email on record' });
   const buf = await pdfBuffer(voucherPDF(v, req.company));
   const sent = await sendMail({
