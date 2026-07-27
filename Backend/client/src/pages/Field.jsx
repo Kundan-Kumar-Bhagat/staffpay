@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { PageHead, Btn, Field, Reveal, Empty, Spinner, StatusPill, Icon } from '../components/ui';
+import { PageHead, Btn, Field as FormField, Reveal, Empty, Spinner, StatusPill, Icon } from '../components/ui';
 import { currentMonth, shiftMonth, monthLabel } from '../utils/format';
 
 export default function Field() {
@@ -30,8 +30,8 @@ export default function Field() {
   return (
     <>
       <PageHead title="Field Log" sub="Gate-kiosk taps from workers without accounts — turn days worked into a voucher in one tap.">
-        <Field label="From"><input type="date" className="input input-sm" value={from} onChange={e => setFrom(e.target.value)} /></Field>
-        <Field label="To"><input type="date" className="input input-sm" value={to} onChange={e => setTo(e.target.value)} /></Field>
+        <FormField label="From"><input type="date" className="input input-sm" value={from} onChange={e => setFrom(e.target.value)} /></FormField>
+        <FormField label="To"><input type="date" className="input input-sm" value={to} onChange={e => setTo(e.target.value)} /></FormField>
         <Btn onClick={load}>Load</Btn>
       </PageHead>
 
