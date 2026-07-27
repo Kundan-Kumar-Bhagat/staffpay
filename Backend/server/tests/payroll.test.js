@@ -7,20 +7,24 @@ beforeAll(setupTestDB);
 afterAll(teardownTestDB);
 beforeEach(clearDB);
 
+import { runInTenant } from '../src/utils/tenantContext.js';
+
 // June 2026: Sundays fall on 7/14/21/28 → 26 working days (Mon–Sat)
 const MONTH = '2026-06';
-async function seedMonth(staffId, markedBy) {
+async function seedMonth(staff, markedBy) {
   let idx = 0;
-  for (let d = 1; d <= 30; d++) {
-    const dt = new Date(2026, 5, d);
-    if (dt.getDay() === 0) continue;
-    const status = idx < 22 ? 'present' : idx < 24 ? 'late' : idx < 25 ? 'half' : 'leave';
-    await Attendance.create({
-      user: staffId, date: `${MONTH}-${String(d).padStart(2, '0')}`,
-      checkIn: '09:10', checkOut: '18:05', status, hours: 8.9, markedBy,
-    });
-    idx++;
-  }
+  await runInTenant(staff.workspace, async () => {
+    for (let d = 1; d <= 30; d++) {
+      const dt = new Date(2026, 5, d);
+      if (dt.getDay() === 0) continue;
+      const status = idx < 22 ? 'present' : idx < 24 ? 'late' : idx < 25 ? 'half' : 'leave';
+      await Attendance.create({
+        user: staff._id, date: `${MONTH}-${String(d).padStart(2, '0')}`,
+        checkIn: '09:10', checkOut: '18:05', status, hours: 8.9, markedBy,
+      });
+      idx++;
+    }
+  });
 }
 
 describe('payroll engine', () => {
@@ -28,7 +32,7 @@ describe('payroll engine', () => {
     await makeCompany(); // pfRate 12, taxRate 5
     const admin = await makeUser({ role: 'admin' });
     const staff = await makeUser({ salary: { basic: 30000, hra: 12000, allowances: 6000 } });
-    await seedMonth(staff._id, admin._id);
+    await seedMonth(staff, admin._id);
     const t = await tokenFor(admin);
 
     const gen = await api().post('/api/payslips/generate').set('Authorization', `Bearer ${t}`)
@@ -50,7 +54,7 @@ describe('payroll engine', () => {
     await makeCompany();
     const admin = await makeUser({ role: 'admin' });
     const staff = await makeUser();
-    await seedMonth(staff._id, admin._id);
+    await seedMonth(staff, admin._id);
     const t = await tokenFor(admin);
     const gen = await api().post('/api/payslips/generate').set('Authorization', `Bearer ${t}`)
       .send({ userId: String(staff._id), month: MONTH });
@@ -64,7 +68,7 @@ describe('payroll engine', () => {
     await makeCompany();
     const admin = await makeUser({ role: 'admin' });
     const s1 = await makeUser(), s2 = await makeUser();
-    await seedMonth(s1._id, admin._id);
+    await seedMonth(s1, admin._id);
     const t = await tokenFor(admin);
     const gen = await api().post('/api/payslips/generate').set('Authorization', `Bearer ${t}`)
       .send({ userId: String(s1._id), month: MONTH });
@@ -77,7 +81,7 @@ describe('payroll engine', () => {
     await makeCompany();
     const admin = await makeUser({ role: 'admin' });
     const staff = await makeUser();
-    await seedMonth(staff._id, admin._id);
+    await seedMonth(staff, admin._id);
     const t = await tokenFor(admin);
     const gen = await api().post('/api/payslips/generate').set('Authorization', `Bearer ${t}`)
       .send({ userId: String(staff._id), month: MONTH });

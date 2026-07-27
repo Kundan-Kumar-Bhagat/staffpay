@@ -8,7 +8,7 @@ export const api = () => request(app);
 
 export async function makeCompany(overrides = {}) {
   let ws = await Workspace.findOne({ slug: 'test-ws' });
-  if (!ws) ws = new Workspace({ name: 'Test Co', slug: 'test-ws', joinCode: 'TEST01' });
+  if (!ws) ws = new Workspace({ name: 'Test Co', slug: 'test-ws', joinCode: 'TEST01', billing: { status: 'trialing', seats: 10, trialEndsAt: new Date(Date.now() + 14 * 86400000) } });
   Object.assign(ws.settings, {
     currency: 'INR', pfRate: 12, taxRate: 5, workingDays: [1, 2, 3, 4, 5, 6],
     managerName: 'Test Manager', city: 'Mumbai', country: 'India', email: 'hr@test.dev',

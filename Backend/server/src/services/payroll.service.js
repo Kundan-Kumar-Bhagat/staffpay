@@ -41,9 +41,10 @@ export async function computeAndSavePayslip(user, month, company, byId, customOv
     const perDay = working ? (basic + hra + allowances) / working : 0;
 
     earnings = { basic: Math.round(basic), hra: Math.round(hra), allowances: Math.round(allowances), overtime: 0 };
+    const gross = earnings.basic + earnings.hra + earnings.allowances + earnings.overtime;
     deductions = {
       pf: Math.round(basic * (company?.pfRate ?? 12) / 100),
-      tax: Math.round((earnings.basic + earnings.hra + earnings.allowances) * (company?.taxRate ?? 5) / 100),
+      tax: Math.round(gross * (company?.taxRate ?? 5) / 100),
       absent: Math.round(perDay * c.absent),
       unpaidLeave: Math.round(perDay * c.leave * 0.5),
       advance: 0,
