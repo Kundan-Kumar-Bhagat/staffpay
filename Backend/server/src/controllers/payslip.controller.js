@@ -10,11 +10,12 @@ import { logActivity } from '../utils/log.js';
 import { notify } from '../utils/notify.js';
 
 export const generate = async (req, res) => {
-  const { userId, month = currentMonth() } = req.body;
+  const { userId, month = currentMonth(), earnings, deductions, days } = req.body;
   const user = await User.findById(userId);
   if (!user) return res.status(404).json({ message: 'Staff member not found' });
   const company = req.company;
-  const slip = await computeAndSavePayslip(user, month, company, req.user._id);
+  const customOverrides = (earnings || deductions || days) ? { earnings, deductions, days } : null;
+  const slip = await computeAndSavePayslip(user, month, company, req.user._id, customOverrides);
   logActivity(req.user, 'payslip', `generated payslip ${slip.serial} for ${user.name}`);
   notify(user, 'payslip', 'Payslip issued', `Your payslip ${slip.serial} for ${slip.monthName} is ready — net ${fmtMoney(slip.net, company.currency)}.`, '/payslips');
   res.json(slip);
