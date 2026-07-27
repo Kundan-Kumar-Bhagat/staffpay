@@ -21,6 +21,7 @@ const NAV = [
   { to: '/staff', label: 'Staff', icon: 'users', roles: ['admin'] },
   { to: '/settings', label: 'Settings', icon: 'gear', roles: ['admin'] },
   { to: '/billing', label: 'Billing', icon: 'card', roles: ['admin'] },
+  { to: '/platform', label: 'Platform', icon: 'layers', roles: ['admin'], super: true },
   { to: '/workspaces', label: 'Workspaces', icon: 'grid', roles: ['admin'], super: true },
 ];
 
@@ -124,6 +125,13 @@ export default function Layout() {
           <button className="icon-btn" title="Sign out" onClick={() => { logout(); nav('/login'); }}><Icon name="out" /></button>
         </header>
         <OfflineBanner />
+        {user.impersonating && (
+          <div className="impersonation-bar">
+            <Icon name="users" size={14} />
+            Viewing as <b>{user.workspaceInfo?.name}</b> — every action is logged
+            <button onClick={async () => { const { data } = await api.post('/platform/exit-impersonation'); setUser(data.user); reload(); }}>Exit</button>
+          </div>
+        )}
         {user.workspaceInfo?.plan === 'trial' && user.role === 'admin' && (
           <Link to="/billing" className={`trial-bar ${user.workspaceInfo.trialDaysLeft <= 3 ? 'low' : ''}`}>
             <Icon name="clock" size={14} />

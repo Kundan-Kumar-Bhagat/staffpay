@@ -22,6 +22,7 @@ const paths = {
   bell: <><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" /><path d="M10 20a2.2 2.2 0 0 0 4 0" /></>,
   wifioff: <><path d="M2 2l20 20" /><path d="M8.5 16.5a5 5 0 0 1 7 0" /><path d="M5 12.5a10 10 0 0 1 5.2-2.7" /><path d="M12 7c1.6 0 3.1.3 4.5 1" /><path d="M2 8.8C4.7 6.8 7.7 5.5 11 5.1" /></>,
   card: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></>,
+  layers: <><path d="M12 2l10 6-10 6L2 8z" /><path d="M2 14l10 6 10-6" /></>,
 };
 
 export const Icon = ({ name, size = 18 }) => (

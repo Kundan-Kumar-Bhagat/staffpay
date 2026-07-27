@@ -16,6 +16,7 @@ import billingRoutes from './routes/billing.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import voucherRoutes from './routes/voucher.routes.js';
 import kioskRoutes from './routes/kiosk.routes.js';
+import platformRoutes from './routes/platform.routes.js';
 import { webhook as billingWebhook } from './controllers/billing.controller.js';
 
 export function createApp() {
@@ -54,6 +55,7 @@ export function createApp() {
   router.use('/billing', billingRoutes);
   router.use('/vouchers', voucherRoutes);
   router.use('/kiosk', kioskRoutes);
+  router.use('/platform', platformRoutes);
   router.use('/public', publicRoutes);
   router.get('/health', (req, res) => res.json({ ok: true, time: new Date() }));
 

@@ -22,6 +22,7 @@ import Billing from './pages/Billing';
 import Vouchers from './pages/Vouchers';
 import Kiosk from './pages/Kiosk';
 import Field from './pages/Field';
+import Platform from './pages/Platform';
 
 const BootScreen = () => (
   <div className="boot"><span className="logo-mark big">SP</span><div className="boot-bar"><i /></div></div>
@@ -71,6 +72,7 @@ export default function App() {
                 <Route path="/staff" element={<RequireRole roles={['admin']}><Staff /></RequireRole>} />
                 <Route path="/settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
                 <Route path="/billing" element={<RequireRole roles={['admin']}><Billing /></RequireRole>} />
+                <Route path="/platform" element={<SuperOnly><Platform /></SuperOnly>} />
                 <Route path="/workspaces" element={<SuperOnly><Workspaces /></SuperOnly>} />
                 <Route path="/profile" element={<Profile />} />
               </Route>

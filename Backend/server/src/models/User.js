@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', index: true },
   activeWorkspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
   superAdmin: { type: Boolean, default: false },
+  impersonating: { type: Boolean, default: false },
 }, { timestamps: true });
 
 userSchema.index({ workspace: 1, email: 1 }, { unique: true, sparse: true });
