@@ -20,6 +20,8 @@ import Verify from './pages/Verify';
 import Workspaces from './pages/Workspaces';
 import Billing from './pages/Billing';
 import Vouchers from './pages/Vouchers';
+import Kiosk from './pages/Kiosk';
+import Field from './pages/Field';
 
 const BootScreen = () => (
   <div className="boot"><span className="logo-mark big">SP</span><div className="boot-bar"><i /></div></div>
@@ -55,9 +57,11 @@ export default function App() {
               <Route path="/signup" element={<PublicOnly><Signup /></PublicOnly>} />
               <Route path="/forgot" element={<PublicOnly><Forgot /></PublicOnly>} />
               <Route path="/verify" element={<Verify />} />
+              <Route path="/kiosk" element={<Kiosk />} />
               <Route element={<RequireAuth><Layout /></RequireAuth>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/attendance" element={<Attendance />} />
+                <Route path="/field" element={<RequireRole roles={['admin', 'manager']}><Field /></RequireRole>} />
                 <Route path="/leave" element={<Leave />} />
                 <Route path="/calendar" element={<CalendarReport />} />
                 <Route path="/payslips" element={<Payslips />} />

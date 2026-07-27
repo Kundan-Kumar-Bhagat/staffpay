@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import { useCompany } from '../context/CompanyContext';
 import { PageHead, Btn, Field, Modal, useToast, Icon, Reveal, Empty, ShareMenu } from '../components/ui';
@@ -15,6 +16,7 @@ const blank = () => ({
 export default function Vouchers() {
   const { company } = useCompany();
   const toast = useToast();
+  const [params] = useSearchParams();
   const cur = company?.currency || 'INR';
   const [rows, setRows] = useState(null);
   const [modal, setModal] = useState(false);
@@ -28,6 +30,13 @@ export default function Vouchers() {
 
   const load = () => api.get('/vouchers').then(r => setRows(r.data));
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const n = params.get('name');
+    if (n) {
+      setF({ ...blank(), name: n, phone: params.get('phone') || '', qty: params.get('qty') || 1, description: params.get('desc') || 'Field labour' });
+      setModal(true);
+    }
+  }, []);
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
 
   const gross = f.amount !== '' && f.amount != null ? +f.amount : (+f.qty || 0) * (+f.rate || 0);

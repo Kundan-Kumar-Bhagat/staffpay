@@ -47,6 +47,8 @@ export const update = async (req, res) => {
   const { name, ...rest } = req.body;
   if (name) req.workspace.name = name;
   Object.assign(req.workspace.settings, rest);
+  if (req.workspace.settings.kiosk?.enabled && !req.workspace.settings.kiosk.code)
+    req.workspace.settings.kiosk.code = String(Math.floor(100000 + Math.random() * 900000));
   try { await req.workspace.save(); }
   catch { return res.status(400).json({ message: 'Invalid brand values — accent must be a #RRGGBB hex' }); }
   res.json(companyView(req.workspace));

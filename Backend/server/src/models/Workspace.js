@@ -23,6 +23,11 @@ const settingsSchema = new mongoose.Schema({
     taxIds: { type: Boolean, default: true }, bank: { type: Boolean, default: true },
     words: { type: Boolean, default: true }, notes: { type: Boolean, default: true },
   },
+  kiosk: {
+    enabled: { type: Boolean, default: false },
+    code: String,
+    siteName: { type: String, default: 'Main Site' },
+  },
   leaveQuotas: { casual: { type: Number, default: 12 }, sick: { type: Number, default: 8 }, unpaid: { type: Number, default: 30 } },
   brand: {
     logoUrl: String,

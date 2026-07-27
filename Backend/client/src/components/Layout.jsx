@@ -11,6 +11,7 @@ import api from '../api/client';
 const NAV = [
   { to: '/', label: 'Dashboard', icon: 'grid', roles: ['admin', 'manager', 'staff'] },
   { to: '/attendance', label: 'Attendance', icon: 'clock', roles: ['admin', 'manager', 'staff'] },
+  { to: '/field', label: 'Field Log', icon: 'clock', roles: ['admin', 'manager'] },
   { to: '/leave', label: 'Leave', icon: 'leave', roles: ['admin', 'manager', 'staff'] },
   { to: '/calendar', label: 'Calendar Report', icon: 'cal', roles: ['admin', 'manager', 'staff'] },
   { to: '/payslips', label: 'Payslips', icon: 'doc', roles: ['admin', 'manager', 'staff'] },

@@ -263,6 +263,26 @@ export default function Settings() {
             <Field label="IFSC / SWIFT"><input className="input" value={form.bank?.ifsc || ''} onChange={e => setForm(f => ({ ...f, bank: { ...f.bank, ifsc: e.target.value } }))} /></Field>
           </div>
 
+          <h4 className="sect">Gate kiosk — shared tablet check-in</h4>
+          <div className="kiosk-panel">
+            <Toggle checked={!!form.kiosk?.enabled} onChange={v => setForm(f => ({ ...f, kiosk: { ...f.kiosk, enabled: v } }))} label="Enable kiosk" hint="Lets workers tap in/out at the gate with just a phone number — no accounts" />
+            {!!form.kiosk?.enabled && (
+              <>
+                <Field label="Site name shown on the kiosk"><input className="input" value={form.kiosk?.siteName || ''} onChange={e => setForm(f => ({ ...f, kiosk: { ...f.kiosk, siteName: e.target.value } }))} /></Field>
+                <div className="kiosk-code">
+                  <span className="stat-label">Access code</span>
+                  <code>{form.kiosk?.code || '— save to generate —'}</code>
+                  <Btn type="button" variant="ghost" className="btn-sm" onClick={async () => {
+                    try { const { data } = await api.post('/kiosk/rotate'); setForm(f => ({ ...f, kiosk: { ...f.kiosk, code: data.code } })); toast('New kiosk code issued — old code stopped'); }
+                    catch { toast('Rotation failed', 'err'); }
+                  }}>Rotate</Btn>
+                  {form.kiosk?.code && <Btn type="button" variant="ghost" className="btn-sm" onClick={() => { navigator.clipboard.writeText(form.kiosk.code); toast('Code copied'); }}>Copy</Btn>}
+                </div>
+                <a className="link" href="/kiosk" target="_blank" rel="noreferrer">Open kiosk screen ↗</a>
+              </>
+            )}
+          </div>
+
           <h4 className="sect">Data & backup</h4>
           <div className="backup-row">
             <div className="integ-meta">
