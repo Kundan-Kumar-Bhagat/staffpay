@@ -16,9 +16,15 @@ export default function Verify() {
 
   const check = async e => {
     e.preventDefault(); setBusy(true); setResult(null);
+    const q = encodeURIComponent(serial.trim());
     try {
-      const { data } = await api.get(`/payslips/verify/${encodeURIComponent(serial)}`);
-      setResult(data);
+      if (serial.trim().toUpperCase().startsWith('PV-')) {
+        const { data } = await api.get(`/vouchers/verify/${q}`);
+        setResult(data);
+      } else {
+        const { data } = await api.get(`/payslips/verify/${q}`);
+        setResult(data);
+      }
     } catch (err) {
       setResult({ valid: false, message: err.response?.data?.message || 'Lookup failed' });
     }
@@ -30,27 +36,39 @@ export default function Verify() {
       <div className="verify-card">
         <div className="verify-brand">
           {result?.brand?.logoUrl ? <img className="auth-logo" src={result.brand.logoUrl} alt="" /> : <span className="logo-mark">SP</span>}
-          <div><strong>{company?.name || 'StaffPay'}</strong><span>Payslip Verification Portal</span></div>
+          <div><strong>{company?.name || 'StaffPay'}</strong><span>Document Verification Portal</span></div>
         </div>
-        <h1>Check a payslip is genuine</h1>
-        <p className="auth-sub">Enter the slip number printed at the top-right of the document, e.g. <b className="mono">PSL-202606-003</b>.</p>
+        <h1>Check a payslip or voucher is genuine</h1>
+        <p className="auth-sub">Enter the reference number printed at the top-right, e.g. <b className="mono">PSL-202606-003</b> or <b className="mono">PV-2026-001</b>.</p>
 
         <form onSubmit={check} className="verify-form">
-          <input className="input mono" required value={serial} onChange={e => setSerial(e.target.value)} placeholder="PSL-YYYYMM-000" />
+          <input className="input mono" required value={serial} onChange={e => setSerial(e.target.value)} placeholder="PSL-YYYYMM-000 or PV-YYYY-000" />
           <Btn type="submit" disabled={busy}>{busy ? 'Checking…' : 'Verify'}</Btn>
         </form>
 
         {result && (result.valid ? (
           <div className="verify-result ok">
-            <span className="verify-stamp">✓ VERIFIED</span>
+            <span className="verify-stamp">✓ VERIFIED {result.kind?.toUpperCase()}</span>
             <div className="verify-grid">
               <div><span>Issued by</span><b>{result.company}</b></div>
-              <div><span>Slip no.</span><b className="mono">{result.serial}</b></div>
-              <div><span>Pay period</span><b>{result.month}</b></div>
-              <div><span>Employee</span><b>{result.employee}</b></div>
-              <div><span>Employee ID</span><b className="mono">{result.employeeId}</b></div>
-              <div><span>Designation</span><b>{result.designation || '—'}</b></div>
-              <div><span>Net pay on record</span><b className="mono">{money(+result.net, company?.currency)}</b></div>
+              <div><span>Reference no.</span><b className="mono">{result.serial || result.number}</b></div>
+              {result.kind === 'payslip' ? (
+                <>
+                  <div><span>Pay period</span><b>{result.month}</b></div>
+                  <div><span>Employee</span><b>{result.employee}</b></div>
+                  <div><span>Employee ID</span><b className="mono">{result.employeeId}</b></div>
+                  <div><span>Designation</span><b>{result.designation || '—'}</b></div>
+                  <div><span>Issuance mode</span><b>{result.source === 'manual' ? `Manual (${result.issuedBy || 'management'})` : 'Automated'}</b></div>
+                  <div><span>Net pay on record</span><b className="mono">{money(+result.net, company?.currency)}</b></div>
+                </>
+              ) : (
+                <>
+                  <div><span>Payee</span><b>{result.payee}</b></div>
+                  <div><span>Work description</span><b>{result.description}</b></div>
+                  <div><span>Payment mode</span><b>{result.paymentMode?.toUpperCase()}</b></div>
+                  <div><span>Net payable</span><b className="mono">{money(+result.net, company?.currency)}</b></div>
+                </>
+              )}
             </div>
             <p className="muted">Record last updated {new Date(result.issuedAt).toLocaleString('en-GB')}. If any detail disagrees with the document you hold, treat it as suspicious and contact {company?.email || 'HR'}.</p>
           </div>

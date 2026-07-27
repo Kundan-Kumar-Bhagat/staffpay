@@ -19,6 +19,7 @@ import Leave from './pages/Leave';
 import Verify from './pages/Verify';
 import Workspaces from './pages/Workspaces';
 import Billing from './pages/Billing';
+import Vouchers from './pages/Vouchers';
 
 const BootScreen = () => (
   <div className="boot"><span className="logo-mark big">SP</span><div className="boot-bar"><i /></div></div>
@@ -60,6 +61,7 @@ export default function App() {
                 <Route path="/leave" element={<Leave />} />
                 <Route path="/calendar" element={<CalendarReport />} />
                 <Route path="/payslips" element={<Payslips />} />
+                <Route path="/vouchers" element={<RequireRole roles={['admin', 'manager']}><Vouchers /></RequireRole>} />
                 <Route path="/invoices" element={<RequireRole roles={['admin', 'manager']}><Invoices /></RequireRole>} />
                 <Route path="/reports" element={<RequireRole roles={['admin', 'manager']}><Reports /></RequireRole>} />
                 <Route path="/staff" element={<RequireRole roles={['admin']}><Staff /></RequireRole>} />

@@ -14,6 +14,7 @@ const NAV = [
   { to: '/leave', label: 'Leave', icon: 'leave', roles: ['admin', 'manager', 'staff'] },
   { to: '/calendar', label: 'Calendar Report', icon: 'cal', roles: ['admin', 'manager', 'staff'] },
   { to: '/payslips', label: 'Payslips', icon: 'doc', roles: ['admin', 'manager', 'staff'] },
+  { to: '/vouchers', label: 'Pay Vouchers', icon: 'doc', roles: ['admin', 'manager'] },
   { to: '/invoices', label: 'Invoices', icon: 'invoice', roles: ['admin', 'manager'] },
   { to: '/reports', label: 'Reports', icon: 'chart', roles: ['admin', 'manager'] },
   { to: '/staff', label: 'Staff', icon: 'users', roles: ['admin'] },
