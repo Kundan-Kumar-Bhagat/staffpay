@@ -1,4 +1,4 @@
-const CACHE = 'staffpay-v1';
+const CACHE = 'staffpay-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -14,9 +14,17 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
 
-  // API reads: network first, fall back to the last cached copy
+  // API reads: network first, fall back to cached copy if valid
   if (url.pathname.startsWith('/api/')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    e.respondWith(
+      fetch(e.request).catch(async () => {
+        const cached = await caches.match(e.request);
+        return cached || new Response(JSON.stringify({ message: 'Offline' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
     return;
   }
 
@@ -29,6 +37,11 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, copy));
         return res;
       })
-      .catch(() => caches.match(e.request).then(hit => hit || caches.match('/index.html') || new Response('Offline', { status: 503 })))
+      .catch(async () => {
+        const hit = await caches.match(e.request);
+        if (hit) return hit;
+        const fallback = await caches.match('/index.html');
+        return fallback || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
+      })
   );
 });
