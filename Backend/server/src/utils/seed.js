@@ -9,10 +9,10 @@ import { dstr, prevMonth, currentMonth } from '../utils/helpers.js';
 import { runInTenant } from '../utils/tenantContext.js';
 
 export async function seedDemo(force = false) {
-  if (!force && (await User.countDocuments()) > 0) return;
+  let ws = await Workspace.findOne({ slug: 'northwind' });
+  if (!force && ws && (await User.countDocuments({ workspace: ws._id })) > 0) return;
   console.log('◇ Seeding demo data & workspace…');
 
-  let ws = await Workspace.findOne({ slug: 'northwind' });
   if (!ws) {
     ws = new Workspace({
       name: 'Northwind Traders Pvt. Ltd.', slug: 'northwind', joinCode: 'DEMO01', plan: 'pro',
@@ -27,22 +27,29 @@ export async function seedDemo(force = false) {
         kiosk: { enabled: true, code: '483921', siteName: 'Warehouse Gate A' },
       },
     });
+    await ws.save();
   } else {
     ws.settings.kiosk = { enabled: true, code: '483921', siteName: 'Warehouse Gate A' };
+    await ws.save();
   }
 
   const company = companyView(ws);
 
   await runInTenant(ws._id, async () => {
     const mk = async u => {
-      const filter = { email: u.email };
-      const doc = { ...u, workspace: ws._id, activeWorkspace: ws._id };
-      await User.collection.updateOne(filter, { $set: doc }, { upsert: true });
-      return User.findOne({ email: u.email });
+      let userDoc = await User.findOne({ email: u.email }).setOptions({ skipTenant: true });
+      if (userDoc) {
+        Object.assign(userDoc, u, { workspace: ws._id, activeWorkspace: ws._id });
+      } else {
+        userDoc = new User({ ...u, workspace: ws._id, activeWorkspace: ws._id });
+      }
+      await userDoc.save(); // Triggers Mongoose pre('save') hook for bcrypt password hashing
+      return userDoc;
     };
 
     const admin = await mk({ name: 'Aarav Mehta', email: 'admin@staffpay.app', phone: '+919810012345', password: 'Admin@123', role: 'admin', superAdmin: true, employeeId: 'EMP-001', designation: 'Director', department: 'Management', salary: { basic: 120000, hra: 48000, allowances: 30000 }, joinDate: '2019-04-01', bank: { name: 'HDFC Bank', accountNo: '50100223344', ifsc: 'HDFC0001234' }, pan: 'ABCPS1234F', pfNo: 'MH12345678' });
-    ws.owner = admin._id; await ws.save();
+    ws.owner = admin._id;
+    await ws.save();
 
     const manager = await mk({ name: 'Priya Sharma', email: 'manager@staffpay.app', phone: '+919810022334', password: 'Manager@123', role: 'manager', employeeId: 'EMP-002', designation: 'Operations Manager', department: 'Operations', salary: { basic: 72000, hra: 28800, allowances: 16200 }, joinDate: '2020-08-17', bank: { name: 'ICICI Bank', accountNo: '623405001234', ifsc: 'ICIC0006234' }, pan: 'BJXPS9821K', pfNo: 'MH87654321' });
 
@@ -59,9 +66,11 @@ export async function seedDemo(force = false) {
       staff.push(await mk({ name, email, phone, password, role: 'staff', employeeId, designation, department, salary, joinDate: '2022-01-10', bank: { name: 'SBI', accountNo: '3098765' + employeeId.slice(4), ifsc: 'SBIN0001234' }, pan: 'AXZP' + employeeId.slice(4) + 'K', pfNo: 'MH' + employeeId.slice(4) + '99' }));
     }
 
-    // Seed Attendance for Previous and Current Month
+    // Seed Attendance for Previous and Current Month based on workingDays setting
     const months = [prevMonth(currentMonth()), currentMonth()];
     const today = dstr();
+    const workingDays = ws.settings.workingDays || [1, 2, 3, 4, 5, 6];
+
     for (const m of months) {
       const [y, mm] = m.split('-').map(Number);
       const total = new Date(y, mm, 0).getDate();
@@ -69,7 +78,7 @@ export async function seedDemo(force = false) {
         for (let d = 1; d <= total; d++) {
           const dt = new Date(y, mm - 1, d);
           const ds = `${m}-${String(d).padStart(2, '0')}`;
-          if (ds > today || dt.getDay() === 0) continue;
+          if (ds > today || !workingDays.includes(dt.getDay())) continue;
           const existingAtt = await Attendance.collection.findOne({ user: u._id, date: ds });
           if (existingAtt) continue;
 
@@ -90,26 +99,30 @@ export async function seedDemo(force = false) {
       await computeAndSavePayslip(u, months[0], company, admin._id);
     }
 
+    // Calculate proper 14-day due dates
+    const due1 = new Date(); due1.setDate(due1.getDate() + 14);
+    const due2 = new Date(); due2.setDate(due2.getDate() + 14);
+
     // Seed Invoices
-    if ((await Invoice.collection.countDocuments()) === 0) {
+    if ((await Invoice.collection.countDocuments({ workspace: ws._id })) === 0) {
       await Invoice.create({
         number: `INV-${new Date().getFullYear()}-001`,
         client: { name: 'Shree Balaji Retailers', email: 'accounts@balajiretail.in', phone: '+91 98220 44556', address: 'Shop 7, LBS Marg, Mulund West, Mumbai 400080', taxId: '27AAACS9876B1Z3' },
         items: [{ description: 'Bulk order supply — FMCG cartons (Q2)', qty: 120, rate: 1850 }, { description: 'Freight & handling', qty: 1, rate: 9400 }],
-        taxRate: 18, discount: 5000, issueDate: dstr(), dueDate: `${dstr().slice(0, 8)}${Math.min(28, +dstr().slice(8) + 14)}`,
+        taxRate: 18, discount: 5000, issueDate: dstr(), dueDate: dstr(due1),
         notes: 'Payment within 14 days. Goods once dispatched will not be taken back.', status: 'sent', createdBy: admin._id,
       });
       await Invoice.create({
         number: `INV-${new Date().getFullYear()}-002`,
         client: { name: 'Apex Consumer Goods', email: 'billing@apexconsumer.com', phone: '+91 98199 33221', address: 'B-402, Trade Tower, Lower Parel, Mumbai 400013', taxId: '27AAACA1234C1Z9' },
         items: [{ description: 'Monthly Logistics Retainer', qty: 1, rate: 45000 }, { description: 'Express Delivery Surcharge', qty: 5, rate: 3200 }],
-        taxRate: 18, discount: 0, issueDate: dstr(), dueDate: `${dstr().slice(0, 8)}${Math.min(28, +dstr().slice(8) + 14)}`,
+        taxRate: 18, discount: 0, issueDate: dstr(), dueDate: dstr(due2),
         notes: 'Thank you for your business.', status: 'paid', createdBy: admin._id,
       });
     }
 
     // Seed Payment Vouchers
-    if ((await Voucher.collection.countDocuments()) === 0) {
+    if ((await Voucher.collection.countDocuments({ workspace: ws._id })) === 0) {
       await Voucher.create({
         number: `PV-${new Date().getFullYear()}-001`,
         payee: { name: 'Ramesh Kumar', phone: '+919000011111', idType: 'Aadhaar', idNumber: '4829-1920-3940' },
@@ -125,7 +138,7 @@ export async function seedDemo(force = false) {
     }
 
     // Seed Kiosk Logs
-    if ((await KioskLog.collection.countDocuments()) === 0) {
+    if ((await KioskLog.collection.countDocuments({ workspace: ws._id })) === 0) {
       await KioskLog.create({
         name: 'Ramesh Kumar', phone: '+919000011111', date: dstr(),
         checkIn: '08:45', checkOut: '17:30', hours: 8.8, status: 'present',
