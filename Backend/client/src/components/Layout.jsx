@@ -85,7 +85,9 @@ export default function Layout() {
       <div className={`backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="side-brand">
-          <span className="logo-mark">SP</span>
+          {company?.brand?.logoUrl
+            ? <img className="side-logo" src={company.brand.logoUrl} alt="" />
+            : <span className="logo-mark">SP</span>}
           <div>
             <strong>StaffPay</strong>
             <span className="side-ws">{user.workspaceInfo?.name || 'No workspace'} <i className={`plan-chip plan-${user.workspaceInfo?.plan}`}>{user.workspaceInfo?.plan}</i></span>

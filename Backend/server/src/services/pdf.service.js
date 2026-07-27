@@ -1,9 +1,19 @@
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
 import { amountInWords, fmtMoney, invoiceTotals } from '../utils/helpers.js';
 
 const PINE = '#0F3D33', INK = '#13231E', MUTED = '#5B6B64', LINE = '#C9D2CC',
   AMBER = '#E8A23C', SOFT = '#EEF3EF', GREEN = '#2E9E6B', RED = '#D64545',
   BLUE = '#3E7CB1', TEAL = '#1E8E8E';
+
+const loadLogo = company => {
+  const url = company.brand?.logoUrl;
+  if (!url || !url.startsWith('/uploads/')) return null;
+  try { return fs.readFileSync(path.join(process.cwd(), url.split('?')[0].slice(1))); } catch { return null; }
+};
+const brandAccent = company =>
+  /^#[0-9a-fA-F]{6}$/.test(company.brand?.accent || '') ? company.brand.accent : PINE;
 
 const kv = (doc, label, val, x, y, w) => {
   doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(6.8).text(label.toUpperCase(), x, y, { width: w, characterSpacing: 0.6 });
@@ -30,11 +40,15 @@ export function payslipPDF(p, company, user) {
   if (on('taxIds')) headLines.push(`GSTIN: ${company.taxId || '—'}    PF Code: ${company.pfCode || '—'}`);
   const bandH = Math.max(96, 62 + headLines.length * 12 + 14);
 
-  doc.rect(0, 0, W, bandH).fill(PINE);
+  const accent = brandAccent(company);
+  const logo = loadLogo(company);
+  doc.rect(0, 0, W, bandH).fill(accent);
   doc.rect(0, bandH, W, 4).fill(AMBER);
-  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(20).text(company.name, M, 24, { width: LW });
-  doc.font('Helvetica').fontSize(8.6).fillColor('#C7DAD1');
-  headLines.forEach((l, i) => doc.text(l, M, 48 + i * 12, { width: LW }));
+  let nx = M;
+  if (logo) { try { doc.image(logo, M, 20, { fit: [54, 54] }); nx = M + 66; } catch {} }
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(20).text(company.name, nx, 24, { width: 330 - (nx - M) });
+  doc.font('Helvetica').fontSize(8.6).fillColor('#DDE8E2');
+  headLines.forEach((l, i) => doc.text(l, nx, 48 + i * 12, { width: 330 - (nx - M) }));
   
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(24).text('PAYSLIP', RX, 24, { width: RW, align: 'right' });
   doc.fillColor(AMBER).font('Helvetica-Bold').fontSize(11).text(p.monthName, RX, 54, { width: RW, align: 'right' });
@@ -69,7 +83,7 @@ export function payslipPDF(p, company, user) {
     const n = Math.max(earnRows.length, dedRows.length);
     const drawTable = (head, rws, x, totals) => {
       let ty = y;
-      doc.rect(x, ty, half, rowH).fill(PINE);
+      doc.rect(x, ty, half, rowH).fill(accent);
       doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.4);
       doc.text(head, x + 10, ty + 6.5, { width: half - 74 });
       doc.text('AMOUNT', x + half - 64, ty + 6.5, { width: 54, align: 'right' });
@@ -102,7 +116,7 @@ export function payslipPDF(p, company, user) {
   }
 
   /* ── net pay band (words line optional) ── */
-  doc.rect(M, y, CW, 46).fill(PINE);
+  doc.rect(M, y, CW, 46).fill(accent);
   doc.rect(M, y + 46, CW, 3).fill(AMBER);
   doc.fillColor('#C7DAD1').font('Helvetica-Bold').fontSize(7.2).text('NET PAY', M + 14, y + 9);
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(19).text(fmtMoney(p.net, cur), M + 14, y + 19);
@@ -166,17 +180,21 @@ export function invoicePDF(inv, company) {
   const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
   const W = 595.28, M = 42, CW = W - M * 2;
   const t = invoiceTotals(inv);
+  const accent = brandAccent(company);
+  const logo = loadLogo(company);
 
   const LW = 320;
   const RX = M + LW + 10;
   const RW = W - M - RX;
 
-  doc.rect(0, 0, W, 96).fill(PINE);
+  doc.rect(0, 0, W, 96).fill(accent);
   doc.rect(0, 96, W, 4).fill(AMBER);
-  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(18).text(company.name, M, 22, { width: LW });
+  let nx = M;
+  if (logo) { try { doc.image(logo, M, 20, { fit: [54, 54] }); nx = M + 66; } catch {} }
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(18).text(company.name, nx, 22, { width: 330 - (nx - M) });
   doc.fontSize(8.6).fillColor('#C7DAD1');
-  doc.text(`${company.address}, ${company.city}, ${company.state} ${company.zip}${on('taxIds') ? ' • GSTIN: ' + (company.taxId || '—') : ''}`, M, 44, { width: LW });
-  doc.text(`${company.email} • ${company.phone}${company.website ? ' • ' + company.website : ''}`, M, 56, { width: LW });
+  doc.text(`${company.address}, ${company.city}, ${company.state} ${company.zip}${on('taxIds') ? ' • GSTIN: ' + (company.taxId || '—') : ''}`, nx, 44, { width: 330 - (nx - M) });
+  doc.text(`${company.email} • ${company.phone}${company.website ? ' • ' + company.website : ''}`, nx, 56, { width: 330 - (nx - M) });
   
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(22).text('INVOICE', RX, 22, { width: RW, align: 'right' });
   doc.fillColor(AMBER).font('Helvetica-Bold').fontSize(10.5).text(inv.number, RX, 48, { width: RW, align: 'right' });
@@ -189,7 +207,7 @@ export function invoicePDF(inv, company) {
   y += 78;
 
   const cols = [M, M + 26, M + CW * 0.52, M + CW * 0.66, M + CW * 0.8];
-  doc.rect(M, y, CW, 22).fill(PINE);
+  doc.rect(M, y, CW, 22).fill(accent);
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.2);
   ['#', 'DESCRIPTION', 'QTY', 'RATE', 'AMOUNT'].forEach((h, i) =>
     doc.text(h, cols[i] + 6, y + 7, { width: (i === 4 ? CW * 0.2 : CW * 0.25), align: i === 4 ? 'right' : 'left' }));
@@ -215,7 +233,7 @@ export function invoicePDF(inv, company) {
   if (t.discount) line('Discount', -t.discount);
   line(`Tax (${inv.taxRate}%)`, t.tax);
   doc.moveTo(W - M - 220, y - 4).lineTo(W - M, y - 4).strokeColor(INK).lineWidth(1).stroke();
-  doc.rect(W - M - 226, y, 226, 26).fill(PINE);
+  doc.rect(W - M - 226, y, 226, 26).fill(accent);
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10.5);
   doc.text('TOTAL', W - M - 216, y + 8);
   doc.text(fmtMoney(t.total, company.currency), W - M - 90, y + 8, { width: 80, align: 'right' });

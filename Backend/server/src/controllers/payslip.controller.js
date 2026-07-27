@@ -99,6 +99,7 @@ export const verify = async (req, res) => {
     valid: true,
     serial: p.serial,
     company: ws?.name || '—',
+    brand: { logoUrl: ws?.settings?.brand?.logoUrl, accent: ws?.settings?.brand?.accent },
     month: p.monthName,
     employee: name ? `${name[0]}${'*'.repeat(Math.min(6, Math.max(3, name.length - 1)))}` : '—',
     employeeId: p.user?.employeeId,

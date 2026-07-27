@@ -6,3 +6,4 @@ build/
 .env.production
 *.log
 .DS_Store
+uploads/

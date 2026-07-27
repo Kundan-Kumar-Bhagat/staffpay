@@ -24,6 +24,10 @@ const settingsSchema = new mongoose.Schema({
     words: { type: Boolean, default: true }, notes: { type: Boolean, default: true },
   },
   leaveQuotas: { casual: { type: Number, default: 12 }, sick: { type: Number, default: 8 }, unpaid: { type: Number, default: 30 } },
+  brand: {
+    logoUrl: String,
+    accent: { type: String, match: /^#[0-9a-fA-F]{6}$/ },
+  },
 }, { _id: false });
 
 const billingSchema = new mongoose.Schema({

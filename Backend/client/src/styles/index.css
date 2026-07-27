@@ -2096,3 +2096,25 @@ tr.dim {
 .trial-bar b { transition: .15s; }
 .trial-bar.low { background: #F9DEDE; border-color: var(--red); color: #A33030; animation: pulse 2.4s infinite; }
 @media (max-width: 900px) { .bill-grid { grid-template-columns: 1fr; } .bill-plan strong { font-size: 32px; } }
+
+/* ── white-label ── */
+.side-logo { width: 36px; height: 36px; object-fit: contain; background: #fff; border-radius: 8px; padding: 3px; flex: none; }
+.auth-logo { width: 44px; height: 44px; object-fit: contain; background: #fff; border-radius: 10px; padding: 4px; flex: none; animation: popIn .3s ease; }
+.auth-wsline { font: 600 12px var(--body); letter-spacing: 1.4px; text-transform: uppercase; color: var(--amber); }
+.pslip-logo { width: 54px; height: 54px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; margin-bottom: 8px; }
+.brand-panel { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: start; }
+.dropzone { position: relative; height: 170px; border: 2px dashed var(--line); border-radius: 12px; display: grid; place-items: center; text-align: center; cursor: pointer; transition: .18s; background: #fff; overflow: hidden; }
+.dropzone span { font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.6; }
+.dropzone span i { font-style: normal; font-size: 11px; font-weight: 400; }
+.dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.dropzone:hover, .dropzone.over { border-color: var(--pine); background: var(--soft); transform: translateY(-2px); }
+.brand-preview { width: 100%; height: 100%; object-fit: contain; padding: 14px; animation: popIn .25s ease; }
+.brand-side { display: flex; flex-direction: column; gap: 12px; }
+.swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 30px; height: 30px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: .15s; }
+.swatch:hover { transform: translateY(-2px) scale(1.06); }
+.swatch.on { border-color: var(--ink); box-shadow: 0 0 0 2px #fff inset; transform: scale(1.1); }
+.color-input { width: 44px; height: 30px; border: 1.5px solid var(--line); border-radius: 8px; padding: 2px; background: #fff; cursor: pointer; }
+.swatches code { font: 600 12px var(--mono); color: var(--muted); }
+.brand-hint { font-size: 12px; max-width: 460px; }
+@media (max-width: 760px) { .brand-panel { grid-template-columns: 1fr; } }

@@ -17,6 +17,7 @@ export default function PayslipDoc({ p, company, user }) {
     <div className="pslip">
       <header className="pslip-head">
         <div>
+          {company.brand?.logoUrl && <img className="pslip-logo" src={company.brand.logoUrl} alt="" />}
           <h3>{company.name}</h3>
           {headLines.map((l, i) => <p key={i}>{l}</p>)}
         </div>

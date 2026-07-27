@@ -41,6 +41,25 @@ export default function Settings() {
   const [integrations, setIntegrations] = useState(null);
   const [waTesting, setWaTesting] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const PRESETS = ['#0F3D33', '#14532D', '#134E4A', '#1E3A5F', '#713F12', '#7F1D1D', '#1C1917'];
+  const setBrand = (k, v) => setForm(f => ({ ...f, brand: { ...f.brand, [k]: v } }));
+
+  const uploadLogo = async file => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('logo', file);
+    try {
+      const { data } = await api.post('/company/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setBrand('logoUrl', data.logoUrl);
+      reload();
+      toast('Logo uploaded — visible on the console and PDFs');
+    } catch (e) { toast(e.response?.data?.message || 'Upload failed (PNG/JPG/WebP/SVG, ≤ 400 KB)', 'err'); }
+  };
+  const removeLogo = async () => {
+    await api.delete('/company/logo').catch(() => {});
+    setBrand('logoUrl', undefined); reload(); toast('Logo removed');
+  };
 
   useEffect(() => {
     api.get('/company/integrations').then(r => setIntegrations(r.data)).catch(() => {});
@@ -128,6 +147,34 @@ export default function Settings() {
             <Field label="HR email"><input className="input" value={form.email || ''} onChange={set('email')} /></Field>
             <Field label="GSTIN / Tax ID"><input className="input" value={form.taxId || ''} onChange={set('taxId')} /></Field>
             <Field label="PF code"><input className="input" value={form.pfCode || ''} onChange={set('pfCode')} /></Field>
+          </div>
+
+          <h4 className="sect">Brand — console, login page & payslip letterhead</h4>
+          <div className="brand-panel">
+            <label
+              className={`dropzone ${drag ? 'over' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDrag(true); }}
+              onDragLeave={() => setDrag(false)}
+              onDrop={e => { e.preventDefault(); setDrag(false); uploadLogo(e.dataTransfer.files[0]); }}>
+              {form.brand?.logoUrl
+                ? <img src={form.brand.logoUrl} className="brand-preview" alt="Logo preview" />
+                : <span>Drop your logo here<br /><i>or click to browse — square works best</i></span>}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={e => uploadLogo(e.target.files[0])} />
+            </label>
+            <div className="brand-side">
+              <Field label="Accent color">
+                <div className="swatches">
+                  {PRESETS.map(c => (
+                    <button type="button" key={c} className={`swatch ${form.brand?.accent === c ? 'on' : ''}`}
+                      style={{ background: c }} title={c} onClick={() => setBrand('accent', c)} />
+                  ))}
+                  <input type="color" className="color-input" value={form.brand?.accent || '#0F3D33'} onChange={e => setBrand('accent', e.target.value)} />
+                  <code>{form.brand?.accent || 'default pine'}</code>
+                </div>
+              </Field>
+              <p className="muted brand-hint">Applies to the sidebar, buttons, your subdomain login page and the PDF letterhead the moment you save — no redeploys.</p>
+              {form.brand?.logoUrl && <Btn type="button" variant="danger-ghost" className="btn-sm" onClick={removeLogo}>Remove logo</Btn>}
+            </div>
           </div>
 
           <h4 className="sect">Manager (signatory on payslips)</h4>

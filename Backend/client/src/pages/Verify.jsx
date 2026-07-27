@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { Btn, useToast } from '../components/ui';
-import { money } from '../utils/format';
+import { money, applyAccent } from '../utils/format';
 import { useCompany } from '../context/CompanyContext';
 
 export default function Verify() {
@@ -11,6 +11,8 @@ export default function Verify() {
   const [serial, setSerial] = useState('');
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => { applyAccent(result?.valid ? result.brand?.accent : null); return () => applyAccent(null); }, [result]);
 
   const check = async e => {
     e.preventDefault(); setBusy(true); setResult(null);
@@ -27,7 +29,7 @@ export default function Verify() {
     <div className="verify-wrap">
       <div className="verify-card">
         <div className="verify-brand">
-          <span className="logo-mark">SP</span>
+          {result?.brand?.logoUrl ? <img className="auth-logo" src={result.brand.logoUrl} alt="" /> : <span className="logo-mark">SP</span>}
           <div><strong>{company?.name || 'StaffPay'}</strong><span>Payslip Verification Portal</span></div>
         </div>
         <h1>Check a payslip is genuine</h1>

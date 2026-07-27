@@ -9,13 +9,16 @@ import reportRoutes from './routes/report.routes.js';
 import companyRoutes from './routes/company.routes.js';
 import activityRoutes from './routes/activity.routes.js';
 import leaveRoutes from './routes/leave.routes.js';
+import path from 'path';
 import notificationRoutes from './routes/notification.routes.js';
 import workspaceRoutes from './routes/workspace.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import publicRoutes from './routes/public.routes.js';
 import { webhook as billingWebhook } from './controllers/billing.controller.js';
 
 export function createApp() {
   const app = express();
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
   const allowed = (process.env.CLIENT_URL || '')
     .split(',')
     .map(s => s.trim().replace(/\/+$/, ''))
@@ -47,6 +50,7 @@ export function createApp() {
   router.use('/notification', notificationRoutes);
   router.use('/workspaces', workspaceRoutes);
   router.use('/billing', billingRoutes);
+  router.use('/public', publicRoutes);
   router.get('/health', (req, res) => res.json({ ok: true, time: new Date() }));
 
   app.use('/api', router);

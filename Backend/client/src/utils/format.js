@@ -57,3 +57,19 @@ export const timeAgo = iso => {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 };
+
+export const isHex = c => /^#[0-9a-fA-F]{6}$/.test(c || '');
+export const shade = (hex, pct) => {
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(v * (1 + pct))));
+  return '#' + [n >> 16, (n >> 8) & 255, n & 255].map(f).map(v => v.toString(16).padStart(2, '0')).join('');
+};
+export const applyAccent = (accent, root = document.documentElement) => {
+  if (isHex(accent)) {
+    root.style.setProperty('--pine', accent);
+    root.style.setProperty('--pine-2', shade(accent, -0.18));
+    root.style.setProperty('--pine-3', shade(accent, -0.32));
+  } else {
+    ['--pine', '--pine-2', '--pine-3'].forEach(v => root.style.removeProperty(v));
+  }
+};

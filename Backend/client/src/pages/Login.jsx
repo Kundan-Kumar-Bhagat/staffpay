@@ -4,11 +4,31 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast, Btn, Field } from '../components/ui';
 
+import { applyAccent } from '../utils/format';
+
 export function AuthShell({ title, sub, children }) {
+  const [wb, setWb] = useState(null);
+  useEffect(() => {
+    const q = location.hostname.split('.')[0];
+    const slug = q && q !== 'localhost' && !/^\d+$/.test(q) ? `?slug=${q}` : '';
+    api.get(`/public/brand${slug}`)
+      .then(r => setWb(r.data)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    applyAccent(wb?.whiteLabel ? wb.accent : null);
+    return () => applyAccent(null);
+  }, [wb]);
+
   return (
     <div className="auth-wrap">
       <aside className="auth-brand">
-        <div className="brand-row"><span className="logo-mark">SP</span><span className="brand-name">StaffPay</span></div>
+        <div className="brand-row">
+          {wb?.whiteLabel && wb.logoUrl
+            ? <img className="auth-logo" src={wb.logoUrl} alt="" />
+            : <span className="logo-mark">SP</span>}
+          <span className="brand-name">{wb?.whiteLabel ? wb.name : 'StaffPay'}</span>
+        </div>
+        {wb?.whiteLabel && <span className="auth-wsline">{wb.tagline || `${wb.name} staff workspace`}</span>}
         <h1 className="auth-head">Hours in.<br />Payslips out.<br /><em>Zero fuss.</em></h1>
         <LiveClock />
         <FloorFeed />
