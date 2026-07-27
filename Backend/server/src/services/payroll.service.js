@@ -39,7 +39,7 @@ export async function computeAndSavePayslip(user, month, company, byId, customOv
 
   const existing = await Payslip.findOne({ user: user._id, month });
   const serial = existing?.serial ||
-    `PSL-${month.replace('-', '')}-${String((await Payslip.countDocuments({ month })) + 1).padStart(3, '0')}`;
+    `PSL-${month.replace('-', '')}-${String((await Payslip.countDocuments({ month })) + 1).padStart(3, '0')}-${Math.floor(100 + Math.random() * 900)}`;
 
   return Payslip.findOneAndUpdate(
     { user: user._id, month },
