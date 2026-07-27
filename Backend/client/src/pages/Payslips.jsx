@@ -33,7 +33,7 @@ export default function Payslips() {
   useEffect(() => {
     if (isMgr) {
       api.get('/users').then(r => {
-        const activeStaff = r.data.filter(u => u.status === 'active' && u.role !== 'admin');
+        const activeStaff = r.data.filter(u => u.status === 'active');
         setStaff(activeStaff);
         if (activeStaff.length) setManualForm(f => ({ ...f, userId: activeStaff[0]._id }));
       });
