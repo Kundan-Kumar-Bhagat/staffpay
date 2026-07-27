@@ -37,20 +37,23 @@ export async function computeAndSavePayslip(user, month, company, byId, customOv
   const totalDeductions = Object.values(deductions).reduce((a, b) => a + b, 0);
   const net = gross - totalDeductions;
 
-  const existing = await Payslip.findOne({ user: user._id, month });
+  const existing = await Payslip.collection.findOne({ user: user._id, month });
   const serial = existing?.serial ||
     `PSL-${month.replace('-', '')}-${String((await Payslip.countDocuments({ month })) + 1).padStart(3, '0')}-${Math.floor(100 + Math.random() * 900)}`;
 
-  return Payslip.findOneAndUpdate(
+  return Payslip.collection.updateOne(
     { user: user._id, month },
     {
-      user: user._id, month, monthName: monthName(month), serial,
-      earnings, deductions, gross, totalDeductions, net, days,
-      source: customOverrides ? 'manual' : 'auto',
-      note: customOverrides?.note || '',
-      status: customOverrides?.draft ? 'draft' : 'issued',
-      generatedBy: byId,
+      $set: {
+        user: user._id, month, monthName: monthName(month), serial,
+        earnings, deductions, gross, totalDeductions, net, days,
+        source: customOverrides ? 'manual' : 'auto',
+        note: customOverrides?.note || '',
+        status: customOverrides?.draft ? 'draft' : 'issued',
+        generatedBy: byId,
+        workspace: company._id || user.workspace,
+      }
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true }
   );
 }
