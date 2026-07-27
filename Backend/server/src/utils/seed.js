@@ -91,7 +91,7 @@ export async function seedDemo(force = false) {
     }
 
     // Seed Invoices
-    if ((await Invoice.countDocuments()) === 0) {
+    if ((await Invoice.collection.countDocuments()) === 0) {
       await Invoice.create({
         number: `INV-${new Date().getFullYear()}-001`,
         client: { name: 'Shree Balaji Retailers', email: 'accounts@balajiretail.in', phone: '+91 98220 44556', address: 'Shop 7, LBS Marg, Mulund West, Mumbai 400080', taxId: '27AAACS9876B1Z3' },
@@ -109,7 +109,7 @@ export async function seedDemo(force = false) {
     }
 
     // Seed Payment Vouchers
-    if ((await Voucher.countDocuments()) === 0) {
+    if ((await Voucher.collection.countDocuments()) === 0) {
       await Voucher.create({
         number: `PV-${new Date().getFullYear()}-001`,
         payee: { name: 'Ramesh Kumar', phone: '+919000011111', idType: 'Aadhaar', idNumber: '4829-1920-3940' },
@@ -125,7 +125,7 @@ export async function seedDemo(force = false) {
     }
 
     // Seed Kiosk Logs
-    if ((await KioskLog.countDocuments()) === 0) {
+    if ((await KioskLog.collection.countDocuments()) === 0) {
       await KioskLog.create({
         name: 'Ramesh Kumar', phone: '+919000011111', date: dstr(),
         checkIn: '08:45', checkOut: '17:30', hours: 8.8, status: 'present',
