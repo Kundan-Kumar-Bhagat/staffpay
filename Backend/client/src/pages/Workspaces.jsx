@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { PageHead, Btn, Field, Modal, useToast, Reveal, Icon } from '../components/ui';
 
+const STATUS_TONE = { trialing: 'st-late', active: 'st-present', demo: 'st-leave', past_due: 'st-absent', canceled: 'st-absent', expired: 'st-absent' };
+
 export default function Workspaces() {
   const toast = useToast();
   const [rows, setRows] = useState(null);
@@ -35,7 +37,7 @@ export default function Workspaces() {
         <div className="card">
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Company</th><th>Plan</th><th>Staff</th><th>Payslips</th><th>Join code</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>Company</th><th>Plan</th><th>Staff</th><th>Payslips</th><th>Join code</th><th>Status</th><th>Billing</th><th /></tr></thead>
               <tbody>
                 {(rows || []).map(ws => (
                   <tr key={ws._id}>
@@ -49,6 +51,7 @@ export default function Workspaces() {
                     <td className="mono">{ws.slips}</td>
                     <td className="mono">{ws.joinCode}</td>
                     <td><span className={`pill ${ws.status === 'active' ? 'st-present' : 'st-absent'}`}>{ws.status}</span></td>
+                    <td><span className={`pill ${STATUS_TONE[ws.billingStatus] || 'st-late'}`}>{ws.billingStatus}</span></td>
                     <td className="row-end">
                       <Btn variant={ws.status === 'active' ? 'danger-ghost' : 'ghost'} className="btn-sm" onClick={() => toggleStatus(ws)}>
                         {ws.status === 'active' ? 'Suspend' : 'Activate'}

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import { PLANS } from '../config/plans.js';
 
 const settingsSchema = new mongoose.Schema({
   tagline: String, address: String, city: String, state: String, zip: String, country: String,
@@ -25,6 +26,15 @@ const settingsSchema = new mongoose.Schema({
   leaveQuotas: { casual: { type: Number, default: 12 }, sick: { type: Number, default: 8 }, unpaid: { type: Number, default: 30 } },
 }, { _id: false });
 
+const billingSchema = new mongoose.Schema({
+  customerId: String,
+  subscriptionId: String,
+  status: { type: String, enum: ['trialing', 'active', 'past_due', 'canceled', 'expired', 'demo'], default: 'trialing' },
+  seats: { type: Number, default: 10 },
+  trialEndsAt: Date,
+  renewsAt: Date,
+}, { _id: false });
+
 const workspaceSchema = new mongoose.Schema({
   name: { type: String, required: true },
   slug: { type: String, unique: true },
@@ -33,9 +43,16 @@ const workspaceSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   settings: { type: settingsSchema, default: () => ({}) },
+  billing: { type: billingSchema, default: () => ({}) },
 }, { timestamps: true });
 
 export const PLAN_LIMITS = { trial: { staff: 10 }, pro: { staff: Infinity } };
+
+export const newTrial = () => ({
+  status: 'trialing',
+  seats: PLANS.trial.seats,
+  trialEndsAt: new Date(Date.now() + PLANS.trial.trialDays * 86400000),
+});
 
 export const genJoinCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 export const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'ws';

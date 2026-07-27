@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Leave from './pages/Leave';
 import Verify from './pages/Verify';
 import Workspaces from './pages/Workspaces';
+import Billing from './pages/Billing';
 
 const BootScreen = () => (
   <div className="boot"><span className="logo-mark big">SP</span><div className="boot-bar"><i /></div></div>
@@ -63,6 +64,7 @@ export default function App() {
                 <Route path="/reports" element={<RequireRole roles={['admin', 'manager']}><Reports /></RequireRole>} />
                 <Route path="/staff" element={<RequireRole roles={['admin']}><Staff /></RequireRole>} />
                 <Route path="/settings" element={<RequireRole roles={['admin']}><Settings /></RequireRole>} />
+                <Route path="/billing" element={<RequireRole roles={['admin']}><Billing /></RequireRole>} />
                 <Route path="/workspaces" element={<SuperOnly><Workspaces /></SuperOnly>} />
                 <Route path="/profile" element={<Profile />} />
               </Route>

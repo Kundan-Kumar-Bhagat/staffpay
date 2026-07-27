@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompany } from '../context/CompanyContext';
 import { Icon, RoleBadge, useToast } from './ui';
@@ -18,6 +18,7 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: 'chart', roles: ['admin', 'manager'] },
   { to: '/staff', label: 'Staff', icon: 'users', roles: ['admin'] },
   { to: '/settings', label: 'Settings', icon: 'gear', roles: ['admin'] },
+  { to: '/billing', label: 'Billing', icon: 'card', roles: ['admin'] },
   { to: '/workspaces', label: 'Workspaces', icon: 'grid', roles: ['admin'], super: true },
 ];
 
@@ -119,6 +120,13 @@ export default function Layout() {
           <button className="icon-btn" title="Sign out" onClick={() => { logout(); nav('/login'); }}><Icon name="out" /></button>
         </header>
         <OfflineBanner />
+        {user.workspaceInfo?.plan === 'trial' && user.role === 'admin' && (
+          <Link to="/billing" className={`trial-bar ${user.workspaceInfo.trialDaysLeft <= 3 ? 'low' : ''}`}>
+            <Icon name="clock" size={14} />
+            Trial — {user.workspaceInfo.trialDaysLeft ?? 0} day(s) left
+            <b>Upgrade →</b>
+          </Link>
+        )}
         <main className="page"><Outlet /></main>
       </div>
     </div>

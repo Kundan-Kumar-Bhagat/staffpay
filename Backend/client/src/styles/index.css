@@ -2060,3 +2060,39 @@ tr.dim {
 .join-code { display: flex; align-items: center; gap: 8px; }
 .join-code code { font: 700 17px var(--mono); letter-spacing: 4px; background: var(--soft); border: 1.5px dashed var(--pine); color: var(--pine); border-radius: 8px; padding: 8px 14px; }
 @media (max-width: 640px) { .ws-panel { flex-direction: column; align-items: flex-start; } }
+
+/* ── billing ── */
+.bill-hero { background: var(--pine); color: #fff; border-radius: 13px; border-bottom: 4px solid var(--amber); padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+.bill-hero .stat-label { color: #8FB3A7; }
+.bill-plan { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; }
+.bill-plan strong { font: 800 40px/1 var(--display); letter-spacing: -.5px; }
+.bill-status { animation: popIn .3s ease; }
+.bill-sub { font-size: 13px; color: #C7DAD1; }
+.bill-sub b { color: #fff; font-family: var(--mono); }
+.bill-sub b.low, .trial-gauge span.low { color: var(--red); font-weight: 700; }
+.bill-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; align-items: start; }
+.meter { display: flex; flex-direction: column; gap: 6px; }
+.meter-head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+.meter-head b { color: var(--ink); }
+.meter-track { height: 9px; background: var(--soft); border-radius: 5px; overflow: hidden; }
+.meter-track i { display: block; height: 100%; border-radius: 5px; transition: width .9s cubic-bezier(.22,.9,.36,1); }
+.bill-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--ink); padding-top: 10px; margin-top: 4px; }
+.bill-total span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
+.bill-total b { font-size: 22px; }
+.seats-row { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 9px; padding: 10px 14px; flex-wrap: wrap; }
+.seats-num { font-size: 18px; min-width: 34px; text-align: center; }
+.pro-pitch { display: flex; flex-direction: column; gap: 12px; border-top: 4px solid var(--amber); }
+.price-tag { font: 700 34px var(--mono); letter-spacing: -1px; }
+.price-tag span { font: 500 13px var(--body); color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.pitch-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.pitch-list li { font-size: 13.5px; padding-left: 22px; position: relative; }
+.pitch-list li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+.trial-gauge { display: flex; flex-direction: column; gap: 6px; }
+.trial-gauge span { font-size: 11.5px; }
+.trial-bar { display: flex; align-items: center; gap: 10px; background: #FBEED7; border-bottom: 1.5px solid var(--amber); color: #8F621F; font: 600 12.5px var(--body); padding: 8px 26px; transition: .15s; }
+.trial-bar b { margin-left: auto; }
+.trial-bar:hover { background: #FBE7C6; }
+.trial-bar:hover b { transform: translateX(3px); }
+.trial-bar b { transition: .15s; }
+.trial-bar.low { background: #F9DEDE; border-color: var(--red); color: #A33030; animation: pulse 2.4s infinite; }
+@media (max-width: 900px) { .bill-grid { grid-template-columns: 1fr; } .bill-plan strong { font-size: 32px; } }

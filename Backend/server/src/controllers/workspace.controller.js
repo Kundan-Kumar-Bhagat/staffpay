@@ -1,4 +1,4 @@
-import Workspace, { PLAN_LIMITS, genJoinCode, slugify } from '../models/Workspace.js';
+import Workspace, { PLAN_LIMITS, genJoinCode, slugify, newTrial } from '../models/Workspace.js';
 import User from '../models/User.js';
 import Payslip from '../models/Payslip.js';
 import { withWorkspaceInfo } from './auth.controller.js';
@@ -6,7 +6,7 @@ import { withWorkspaceInfo } from './auth.controller.js';
 export const provision = async (req, res) => {
   const { name, plan = 'trial', ownerEmail } = req.body;
   if (!name) return res.status(400).json({ message: 'Workspace name required' });
-  const ws = await Workspace.create({ name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, joinCode: genJoinCode(), plan });
+  const ws = await Workspace.create({ name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, joinCode: genJoinCode(), plan, billing: newTrial() });
   if (ownerEmail) {
     const owner = await User.findOne({ email: ownerEmail.toLowerCase() });
     if (owner) {
@@ -25,7 +25,7 @@ export const list = async (req, res) => {
       User.countDocuments({ workspace: ws._id }),
       Payslip.countDocuments({ workspace: ws._id }),
     ]);
-    out.push({ ...ws.toObject(), staff, slips });
+    out.push({ ...ws.toObject(), staff, slips, billingStatus: ws.billing?.status || 'trialing', seats: ws.billing?.seats });
   }
   res.json(out);
 };

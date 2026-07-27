@@ -11,6 +11,8 @@ import activityRoutes from './routes/activity.routes.js';
 import leaveRoutes from './routes/leave.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import workspaceRoutes from './routes/workspace.routes.js';
+import billingRoutes from './routes/billing.routes.js';
+import { webhook as billingWebhook } from './controllers/billing.controller.js';
 
 export function createApp() {
   const app = express();
@@ -29,6 +31,7 @@ export function createApp() {
     },
     credentials: true,
   }));
+  app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billingWebhook);
   app.use(express.json({ limit: '2mb' }));
 
   const router = express.Router();
@@ -43,6 +46,7 @@ export function createApp() {
   router.use('/leave', leaveRoutes);
   router.use('/notification', notificationRoutes);
   router.use('/workspaces', workspaceRoutes);
+  router.use('/billing', billingRoutes);
   router.get('/health', (req, res) => res.json({ ok: true, time: new Date() }));
 
   app.use('/api', router);

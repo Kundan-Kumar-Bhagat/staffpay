@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import Token from '../models/Token.js';
-import Workspace, { genJoinCode, slugify, companyView } from '../models/Workspace.js';
+import Workspace, { genJoinCode, slugify, companyView, newTrial } from '../models/Workspace.js';
 import { sendMail } from '../services/mail.service.js';
 import { logActivity } from '../utils/log.js';
 
@@ -17,6 +17,9 @@ export const withWorkspaceInfo = async user => {
     workspaceInfo: ws ? {
       id: ws._id, name: ws.name, plan: ws.plan,
       joinCode: (['admin', 'manager'].includes(user.role) || user.superAdmin) ? ws.joinCode : undefined,
+      trialDaysLeft: ws.plan === 'trial' && ws.billing?.trialEndsAt
+        ? Math.max(0, Math.ceil((new Date(ws.billing.trialEndsAt) - Date.now()) / 86400000))
+        : undefined,
     } : null,
   };
 };
@@ -29,7 +32,7 @@ const issueTokens = async (user, remember) => ({
 
 async function soloWorkspace(ownerName) {
   const name = `${ownerName}'s Workspace`;
-  return Workspace.create({ name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, joinCode: genJoinCode() });
+  return Workspace.create({ name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, joinCode: genJoinCode(), billing: newTrial() });
 }
 
 export const register = async (req, res) => {
@@ -50,6 +53,7 @@ export const register = async (req, res) => {
       name: companyName || `${name}'s Workspace`,
       slug: `${slugify(companyName || name)}-${Date.now().toString(36).slice(-4)}`,
       joinCode: genJoinCode(),
+      billing: newTrial(),
       settings: { managerName: name },
     });
     role = 'admin';
